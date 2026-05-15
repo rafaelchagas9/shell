@@ -291,6 +291,15 @@ Singleton {
         onTriggered: root.isManualSeeking = false
     }
 
+    Timer {
+        id: positionSyncTimer
+
+        interval: Math.max(80, GlobalConfig.dashboard.mediaUpdateInterval)
+        running: !!root.player && (root.lyricsVisible || (GlobalConfig.background.mediaWallpaper.enabled && GlobalConfig.background.mediaWallpaper.showLyrics))
+        repeat: true
+        onTriggered: root.updatePosition()
+    }
+
     // If no local lyrics were loaded within the interval, fall back to NetEase
     Timer {
         id: fallbackTimer
@@ -358,6 +367,10 @@ Singleton {
     Connections {
         function onMetadataChanged() {
             loadLyrics();
+        }
+
+        function onPositionChanged() {
+            root.updatePosition();
         }
 
         target: root.player

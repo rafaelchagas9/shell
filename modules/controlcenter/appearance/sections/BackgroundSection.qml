@@ -38,6 +38,138 @@ CollapsibleSection {
 
     StyledText {
         Layout.topMargin: Tokens.spacing.normal
+        text: qsTr("Media Wallpaper")
+        font.pointSize: Tokens.font.size.larger
+        font.weight: 500
+    }
+
+    SwitchRow {
+        label: qsTr("Media wallpaper enabled")
+        checked: rootPane.mediaWallpaperEnabled
+        onToggled: checked => {
+            rootPane.mediaWallpaperEnabled = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SwitchRow {
+        label: qsTr("Show lyrics on wallpaper")
+        checked: rootPane.mediaWallpaperShowLyrics
+        enabled: rootPane.mediaWallpaperEnabled
+        onToggled: checked => {
+            rootPane.mediaWallpaperShowLyrics = checked;
+            rootPane.saveConfig();
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.normal
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Track switch delay")
+            value: rootPane.mediaWallpaperTrackDebounceMs
+            from: 0
+            to: 5000
+            stepSize: 50
+            suffix: qsTr("ms")
+            enabled: rootPane.mediaWallpaperEnabled
+            validator: IntValidator {
+                bottom: 0
+                top: 5000
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.mediaWallpaperTrackDebounceMs = Math.round(newValue);
+                rootPane.saveConfig();
+            }
+        }
+
+        SliderInput {
+            Layout.fillWidth: true
+
+            label: qsTr("Pause fallback delay")
+            value: rootPane.mediaWallpaperPauseRestoreDelayMs
+            from: 0
+            to: 120000
+            stepSize: 1000
+            suffix: qsTr("ms")
+            enabled: rootPane.mediaWallpaperEnabled
+            validator: IntValidator {
+                bottom: 0
+                top: 120000
+            }
+            formatValueFunction: val => Math.round(val).toString()
+            parseValueFunction: text => parseInt(text)
+
+            onValueModified: newValue => {
+                rootPane.mediaWallpaperPauseRestoreDelayMs = Math.round(newValue);
+                rootPane.saveConfig();
+            }
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.small
+        enabled: rootPane.mediaWallpaperEnabled
+
+        StyledText {
+            text: qsTr("Allowed players")
+            font.pointSize: Tokens.font.size.normal
+            font.weight: 500
+        }
+
+        StyledInputField {
+            Layout.fillWidth: true
+            text: rootPane.mediaWallpaperAllowPlayersText
+            horizontalAlignment: TextInput.AlignLeft
+            onTextEdited: text => {
+                rootPane.mediaWallpaperAllowPlayersText = text;
+            }
+            onEditingFinished: rootPane.saveConfig()
+        }
+
+        StyledText {
+            text: qsTr("Comma-separated aliases or raw MPRIS identities. Leave empty to allow all players.")
+            color: Colours.palette.m3outline
+            wrapMode: Text.WordWrap
+            font.pointSize: Tokens.font.size.small
+        }
+    }
+
+    SectionContainer {
+        contentSpacing: Tokens.spacing.small
+        enabled: rootPane.mediaWallpaperEnabled
+
+        StyledText {
+            text: qsTr("Blocked players")
+            font.pointSize: Tokens.font.size.normal
+            font.weight: 500
+        }
+
+        StyledInputField {
+            Layout.fillWidth: true
+            text: rootPane.mediaWallpaperBlockPlayersText
+            horizontalAlignment: TextInput.AlignLeft
+            onTextEdited: text => {
+                rootPane.mediaWallpaperBlockPlayersText = text;
+            }
+            onEditingFinished: rootPane.saveConfig()
+        }
+
+        StyledText {
+            text: qsTr("Blocked entries win over allowed ones.")
+            color: Colours.palette.m3outline
+            wrapMode: Text.WordWrap
+            font.pointSize: Tokens.font.size.small
+        }
+    }
+
+    StyledText {
+        Layout.topMargin: Tokens.spacing.normal
         text: qsTr("Desktop Clock")
         font.pointSize: Tokens.font.size.larger
         font.weight: 500

@@ -49,10 +49,24 @@ Item {
     property bool desktopClockInvertColors: Config.background.desktopClock.invertColors ?? false
     property bool backgroundEnabled: Config.background.enabled ?? true
     property bool wallpaperEnabled: Config.background.wallpaperEnabled ?? true
+    property bool mediaWallpaperEnabled: Config.background.mediaWallpaper.enabled ?? false
+    property bool mediaWallpaperShowLyrics: Config.background.mediaWallpaper.showLyrics ?? true
+    property int mediaWallpaperTrackDebounceMs: Config.background.mediaWallpaper.trackDebounceMs ?? 450
+    property int mediaWallpaperPauseRestoreDelayMs: Config.background.mediaWallpaper.pauseRestoreDelayMs ?? 30000
+    property string mediaWallpaperAllowPlayersText: formatPlayerList(Config.background.mediaWallpaper.allowPlayers ?? [])
+    property string mediaWallpaperBlockPlayersText: formatPlayerList(Config.background.mediaWallpaper.blockPlayers ?? [])
     property bool visualiserEnabled: Config.background.visualiser.enabled ?? false
     property bool visualiserAutoHide: Config.background.visualiser.autoHide ?? true
     property real visualiserRounding: Config.background.visualiser.rounding ?? 1
     property real visualiserSpacing: Config.background.visualiser.spacing ?? 1
+
+    function parsePlayerList(value) {
+        return value.split(",").map(entry => entry.trim()).filter(entry => entry.length > 0);
+    }
+
+    function formatPlayerList(value) {
+        return value.join(", ");
+    }
 
     function saveConfig() {
         GlobalConfig.appearance.anim.durations.scale = root.animDurationsScale;
@@ -83,6 +97,12 @@ Item {
         GlobalConfig.background.desktopClock.invertColors = root.desktopClockInvertColors;
 
         GlobalConfig.background.wallpaperEnabled = root.wallpaperEnabled;
+        GlobalConfig.background.mediaWallpaper.enabled = root.mediaWallpaperEnabled;
+        GlobalConfig.background.mediaWallpaper.showLyrics = root.mediaWallpaperShowLyrics;
+        GlobalConfig.background.mediaWallpaper.trackDebounceMs = root.mediaWallpaperTrackDebounceMs;
+        GlobalConfig.background.mediaWallpaper.pauseRestoreDelayMs = root.mediaWallpaperPauseRestoreDelayMs;
+        GlobalConfig.background.mediaWallpaper.allowPlayers = root.parsePlayerList(root.mediaWallpaperAllowPlayersText);
+        GlobalConfig.background.mediaWallpaper.blockPlayers = root.parsePlayerList(root.mediaWallpaperBlockPlayersText);
 
         GlobalConfig.background.visualiser.enabled = root.visualiserEnabled;
         GlobalConfig.background.visualiser.autoHide = root.visualiserAutoHide;
