@@ -57,11 +57,18 @@ ColumnLayout {
     GridLayout {
         id: wsGrid
 
+    GridLayout {
+        id: wsGrid
+
         Layout.fillWidth: true
         Layout.leftMargin: Tokens.padding.large
         Layout.rightMargin: Tokens.padding.large
         Layout.bottomMargin: root.moveToWsExpanded ? Tokens.spacing.medium : 0
+        Layout.leftMargin: Tokens.padding.large
+        Layout.rightMargin: Tokens.padding.large
+        Layout.bottomMargin: root.moveToWsExpanded ? Tokens.spacing.medium : 0
         Layout.preferredHeight: root.moveToWsExpanded ? implicitHeight : 0
+        opacity: root.moveToWsExpanded ? 1 : 0
         opacity: root.moveToWsExpanded ? 1 : 0
         clip: true
 
@@ -86,7 +93,30 @@ ColumnLayout {
                 type: Anim.DefaultEffects
             }
         }
+        rowSpacing: Tokens.spacing.small
+        columnSpacing: Tokens.spacing.small
+        columns: 5
 
+        Behavior on Layout.bottomMargin {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on Layout.preferredHeight {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Behavior on opacity {
+            Anim {
+                type: Anim.DefaultEffects
+            }
+        }
+
+        Repeater {
+            model: 10
         Repeater {
             model: 10
 
@@ -94,9 +124,18 @@ ColumnLayout {
                 required property int index
                 readonly property int wsId: Math.floor((Hypr.activeWsId - 1) / 10) * 10 + index + 1
                 readonly property bool isCurrent: root.client?.workspace.id === wsId
+            Button {
+                required property int index
+                readonly property int wsId: Math.floor((Hypr.activeWsId - 1) / 10) * 10 + index + 1
+                readonly property bool isCurrent: root.client?.workspace.id === wsId
 
                     onClicked: Hypr.dispatch(Hyprland.usingLua ? `hl.dsp.window.move({ workspace = "${wsId}" , follow = "address:0x${root.client?.address}" })` : `movetoworkspace ${wsId}, address:0x${root.client?.address}`);
 
+                color: isCurrent ? Colours.tPalette.m3surfaceContainerHighest : Colours.palette.m3tertiaryContainer
+                onColor: isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onTertiaryContainer
+                text: wsId
+                disabled: isCurrent
+            }
                 color: isCurrent ? Colours.tPalette.m3surfaceContainerHighest : Colours.palette.m3tertiaryContainer
                 onColor: isCurrent ? Colours.palette.m3onSurface : Colours.palette.m3onTertiaryContainer
                 text: wsId
