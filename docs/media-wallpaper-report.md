@@ -272,6 +272,11 @@ off current `main` (e.g. `feat/media-wallpaper-report`), not on `main` directly.
 
 ## 8. Reference pointers
 
+> Building, running and testing this fork: see [`docs/development.md`](development.md)
+> and the `./dev.sh` helper. **Test by running from the repo** (`./dev.sh run`),
+> not by installing into system dirs.
+
+
 - Old implementation: branch **`backup/main-pre-upstream-merge`**, e.g.
   `git show backup/main-pre-upstream-merge:modules/background/Wallpaper.qml`.
 - New lyrics service: `plugin/src/Caelestia/Services/lyrics.hpp`.
