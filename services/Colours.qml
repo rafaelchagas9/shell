@@ -8,18 +8,32 @@ import Caelestia
 import Caelestia.Config
 import qs.services
 import qs.utils
-import Quickshell.Hyprland
 
 Singleton {
     id: root
 
     property bool showPreview
-    property bool externalPreviewReady
     property string scheme
     property string flavour
+    readonly property bool light: showPreview ? previewLight : externalPreviewActive ? externalPreviewLight : currentLight
     property bool currentLight
-    property bool externalPreviewLight
     property bool previewLight
+    readonly property M3Palette palette: showPreview ? preview : externalPreviewActive ? external : current
+    readonly property M3TPalette tPalette: M3TPalette {}
+    readonly property M3Palette current: M3Palette {}
+    readonly property M3Palette external: M3Palette {}
+    readonly property M3Palette preview: M3Palette {}
+    readonly property Transparency transparency: Transparency {}
+    readonly property alias wallLuminance: analyser.luminance
+
+    property bool cooldownPending
+    property real lastBaseTransparency
+
+    // External (media-art) colour preview: when a media wallpaper is active and
+    // the scheme is "dynamic", a scheme is extracted from the album art and
+    // loaded into `external`, overriding `current` while `externalPreviewActive`.
+    property bool externalPreviewReady
+    property bool externalPreviewLight
     property string externalPreviewPath
     property string externalPreviewKey
     property string composedPreviewSource
@@ -29,14 +43,6 @@ Singleton {
     property string remotePreviewPath
     property string remotePreviewKey
     readonly property bool externalPreviewActive: !showPreview && externalPreviewReady && externalPreviewKey.length > 0
-    readonly property bool light: showPreview ? previewLight : externalPreviewActive ? externalPreviewLight : currentLight
-    readonly property M3Palette palette: showPreview ? preview : externalPreviewActive ? external : current
-    readonly property M3TPalette tPalette: M3TPalette {}
-    readonly property M3Palette current: M3Palette {}
-    readonly property M3Palette external: M3Palette {}
-    readonly property M3Palette preview: M3Palette {}
-    readonly property Transparency transparency: Transparency {}
-    readonly property alias wallLuminance: analyser.luminance
 
     function getLuminance(c: color): real {
         if (c.r == 0 && c.g == 0 && c.b == 0)
@@ -229,11 +235,20 @@ Singleton {
     }
 
     function reloadHyprRules(): void {
-        const str = Hyprland.usingLua ? `eval 'hl.layer_rule({ match = { namespace = "caelestia-drawers" }, %1 = true, %2 = true })'` : "keyword layerrule %1 %2, match:namespace caelestia-drawers";
+        const str = "keyword layerrule %1 %2, match:namespace caelestia-drawers";
         Hypr.extras.batchMessage([str.arg("blur").arg(transparency.enabled ? 1 : 0), str.arg("ignore_alpha").arg(transparency.base - 0.03)]);
     }
 
-    Component.onCompleted: debounceTimer.triggered()
+    function requestReloadHyprRules(): void {
+        if (cooldownTimer.running) {
+            root.cooldownPending = true;
+        } else {
+            root.reloadHyprRules();
+            cooldownTimer.restart();
+        }
+    }
+
+    Component.onCompleted: root.requestReloadHyprRules()
 
     Connections {
         function onConfigReloaded(): void {
@@ -254,13 +269,6 @@ Singleton {
         id: analyser
 
         source: root.showPreview ? Wallpapers.previewPath : root.externalPreviewActive ? root.externalPreviewPath : Wallpapers.current
-    }
-
-    Timer {
-        id: debounceTimer
-
-        interval: 300
-        onTriggered: root.reloadHyprRules()
     }
 
     Process {
@@ -304,13 +312,44 @@ Singleton {
         }
     }
 
+    Timer {
+        id: cooldownTimer
+
+        interval: 30
+        onTriggered: {
+            if (root.cooldownPending) {
+                root.cooldownPending = false;
+                root.reloadHyprRules();
+                restart();
+            }
+        }
+    }
+
+    Timer {
+        id: cAnimCompleteTimer
+
+        interval: Tokens.anim.durations.expressiveSlowEffects
+        onTriggered: root.requestReloadHyprRules()
+    }
+
     component Transparency: QtObject {
         readonly property bool enabled: Tokens.transparency.enabled
         readonly property real base: Math.max(0, Math.min(1, Tokens.transparency.base - (root.light ? 0.1 : 0)))
         readonly property real layers: Tokens.transparency.layers
 
-        onEnabledChanged: debounceTimer.restart()
-        onBaseChanged: debounceTimer.restart()
+        onEnabledChanged: {
+            if (enabled)
+                root.requestReloadHyprRules();
+            else
+                cAnimCompleteTimer.start();
+        }
+        onBaseChanged: {
+            if (root.lastBaseTransparency > base)
+                root.requestReloadHyprRules();
+            else
+                cAnimCompleteTimer.start();
+            root.lastBaseTransparency = base;
+        }
     }
 
     component M3TPalette: QtObject {

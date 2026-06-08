@@ -5,6 +5,7 @@ import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.components.containers
 import qs.services
@@ -20,10 +21,9 @@ Variants {
 
         screen: modelData
         name: "background"
-
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: hasBackgroundSurface ? WlrLayer.Background : WlrLayer.Bottom
-        color: Config.background.wallpaperEnabled ? "black" : "transparent"
+        color: contentItem.Config.background.wallpaperEnabled ? "black" : "transparent"
         surfaceFormat.opaque: false
 
         anchors.top: true
@@ -56,7 +56,8 @@ Variants {
             Item {
                 id: mediaLyricsOverlay
 
-                readonly property int lyricIndex: LyricsService.currentIndex
+                readonly property int lyricCount: Lyrics.lyrics.length
+                readonly property int lyricIndex: Lyrics.indexForTime(Players.active?.position ?? 0)
                 readonly property int displayLyricIndex: lyricIndex < 0 ? -1 : findNonEmptyIndex(lyricIndex, -1)
                 readonly property int previousLyricIndex: previousNonEmptyIndex(displayedLyricIndex)
                 readonly property int nextLyricIndex: nextNonEmptyIndex(displayedLyricIndex)
@@ -67,28 +68,37 @@ Variants {
                 readonly property string currentLyricLine: lyricLineAt(displayedLyricIndex)
                 readonly property string nextLyricLine: lyricLineAt(nextLyricIndex)
                 readonly property string afterNextLyricLine: lyricLineAt(afterNextLyricIndex)
-                readonly property bool mediaModeActive: wallpaper.item?.mediaCanDisplay ?? false
-                readonly property bool hasLyric: currentLyricLine.trim().length > 0 || previousLyricLine.trim().length > 0 || nextLyricLine.trim().length > 0
+                readonly property bool mediaModeActive: wallpaper.item?.mediaCanDisplay ?? false // qmllint disable missing-property
+                readonly property bool hasLyric: {
+                    // Read every dependency unconditionally: a short-circuited `&&`
+                    // would stop QML from tracking the lyric-line props as deps,
+                    // leaving this binding stale once Lyrics.hasLyrics flips true.
+                    const svcHasLyrics = Lyrics.hasLyrics;
+                    const hasCurrent = currentLyricLine.trim().length > 0;
+                    const hasPrevious = previousLyricLine.trim().length > 0;
+                    const hasNext = nextLyricLine.trim().length > 0;
+                    return svcHasLyrics && (hasCurrent || hasPrevious || hasNext);
+                }
                 readonly property real lineSlotHeight: Math.max(previousLyricText.implicitHeight, currentLyricText.implicitHeight * 1.15, nextLyricText.implicitHeight) + Tokens.spacing.small
 
                 property int displayedLyricIndex: -1
                 property int pendingLyricIndex: -1
                 property real stackOffset: -lineSlotHeight
 
-                function lyricLineAt(idx) {
-                    if (idx < 0 || idx >= LyricsService.model.count)
+                function lyricLineAt(idx: int): string {
+                    if (idx < 0 || idx >= lyricCount)
                         return "";
 
-                    return (LyricsService.model.get(idx).lyricLine ?? "").trim();
+                    return String(Lyrics.lyrics[idx] ?? "").trim();
                 }
 
-                function findNonEmptyIndex(startIndex, step) {
-                    if (step === 0 || LyricsService.model.count === 0)
+                function findNonEmptyIndex(startIndex: int, step: int): int {
+                    if (step === 0 || lyricCount === 0)
                         return -1;
 
                     let idx = startIndex;
 
-                    while (idx >= 0 && idx < LyricsService.model.count) {
+                    while (idx >= 0 && idx < lyricCount) {
                         if (lyricLineAt(idx).length > 0)
                             return idx;
                         idx += step;
@@ -97,15 +107,15 @@ Variants {
                     return -1;
                 }
 
-                function previousNonEmptyIndex(idx) {
+                function previousNonEmptyIndex(idx: int): int {
                     return findNonEmptyIndex(idx - 1, -1);
                 }
 
-                function nextNonEmptyIndex(idx) {
+                function nextNonEmptyIndex(idx: int): int {
                     return findNonEmptyIndex(idx + 1, 1);
                 }
 
-                function syncDisplayedLyricIndex() {
+                function syncDisplayedLyricIndex(): void {
                     if (displayLyricIndex < 0) {
                         displayedLyricIndex = -1;
                         pendingLyricIndex = -1;
@@ -163,8 +173,21 @@ Variants {
                 anchors.fill: parent
                 visible: mediaModeActive && Config.background.mediaWallpaper.showLyrics && hasLyric
 
-                Rectangle {
+                // Forces MprisPlayer.position to refresh so indexForTime advances.
+                // Must NOT be gated on `visible`: the overlay only becomes visible
+                // once a non-empty lyric line is reached, which itself needs the
+                // position to advance — gating on visible would deadlock on intros.
+                Timer {
+                    running: mediaLyricsOverlay.mediaModeActive && Config.background.mediaWallpaper.showLyrics && (Players.active?.isPlaying ?? false)
+                    interval: GlobalConfig.dashboard.mediaUpdateInterval
+                    repeat: true
+                    onTriggered: Players.active?.positionChanged()
+                }
+
+                Item {
                     id: lyricPlate
+
+                    readonly property real plateRadius: Tokens.rounding.large
 
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: parent.top
@@ -172,15 +195,65 @@ Variants {
                     width: Math.min(parent.width * 0.82, 1200)
                     height: lyricViewport.height + Tokens.padding.large * 2
 
-                    radius: Tokens.rounding.large * 1.2
-                    color: Qt.alpha("#101418", 0.56)
+                    // Material elevation: a rounded surface behind the frosted
+                    // glass, layered so MultiEffect casts a soft drop shadow.
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: lyricPlate.plateRadius
+                        color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.5)
 
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: Qt.alpha("black", 0.8)
-                        shadowBlur: 0.95
-                        shadowVerticalOffset: 3
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true
+                            shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.5)
+                            shadowBlur: 1
+                            shadowVerticalOffset: 4
+                        }
+                    }
+
+                    // Frosted glass: capture the wallpaper region behind the plate,
+                    // blur it, then lay a translucent Material surfaceContainer over
+                    // it so text contrast stays consistent over any album art.
+                    StyledClippingRect {
+                        anchors.fill: parent
+                        radius: lyricPlate.plateRadius
+                        color: "transparent"
+
+                        ShaderEffectSource {
+                            id: plateFrostSource
+
+                            anchors.fill: parent
+                            sourceItem: wallpaper
+                            sourceRect: Qt.rect(lyricPlate.x, lyricPlate.y, lyricPlate.width, lyricPlate.height)
+                            live: true
+                            recursive: false
+                            hideSource: false
+                            // Left visible (not culled) so its FBO keeps updating;
+                            // the opaque blurred MultiEffect + scrim cover it fully.
+                        }
+
+                        MultiEffect {
+                            anchors.fill: parent
+                            source: plateFrostSource
+                            blurEnabled: true
+                            blur: 1
+                            blurMax: 48
+                            saturation: -0.1
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.58)
+                        }
+                    }
+
+                    // Subtle Material hairline outline.
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: lyricPlate.plateRadius
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Qt.alpha(Colours.palette.m3outlineVariant, 0.3)
                     }
 
                     Item {
@@ -210,11 +283,9 @@ Variants {
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                                 text: mediaLyricsOverlay.beforePreviousLyricLine.replace(/\u00A0/g, " ")
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.body.large
                                 opacity: 0.56
-                                style: Text.Outline
-                                styleColor: Qt.alpha("black", 0.7)
                             }
 
                             StyledText {
@@ -228,11 +299,9 @@ Variants {
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                                 text: mediaLyricsOverlay.previousLyricLine.replace(/\u00A0/g, " ")
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.body.large
                                 opacity: 0.72
-                                style: Text.Outline
-                                styleColor: Qt.alpha("black", 0.7)
                             }
 
                             StyledText {
@@ -247,11 +316,8 @@ Variants {
                                 maximumLineCount: 1
                                 text: mediaLyricsOverlay.currentLyricLine.replace(/\u00A0/g, " ")
                                 color: Colours.palette.m3primary
-                                font.pointSize: Tokens.font.size.normal
-                                font.bold: true
+                                font: Tokens.font.body.builders.large.weight(Font.Bold).build()
                                 scale: mediaLyricsOverlay.currentLyricLine.length > 0 ? 1.15 : 1.0
-                                style: Text.Outline
-                                styleColor: Qt.alpha("black", 0.75)
 
                                 Behavior on scale {
                                     Anim {
@@ -271,11 +337,9 @@ Variants {
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                                 text: mediaLyricsOverlay.nextLyricLine.replace(/\u00A0/g, " ")
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.body.large
                                 opacity: 0.72
-                                style: Text.Outline
-                                styleColor: Qt.alpha("black", 0.7)
                             }
 
                             StyledText {
@@ -289,11 +353,9 @@ Variants {
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
                                 text: mediaLyricsOverlay.afterNextLyricLine.replace(/\u00A0/g, " ")
-                                color: Colours.palette.m3onSurfaceVariant
-                                font.pointSize: Tokens.font.size.normal
+                                color: Colours.palette.m3onSurface
+                                font: Tokens.font.body.large
                                 opacity: 0.56
-                                style: Text.Outline
-                                styleColor: Qt.alpha("black", 0.7)
                             }
                         }
 
@@ -337,7 +399,7 @@ Variants {
 
                         target: mediaLyricsOverlay
                         property: "stackOffset"
-                        duration: LyricsService.isManualSeeking ? 0 : Tokens.anim.durations.normal
+                        duration: Tokens.anim.durations.normal
                         easing.type: Easing.OutCubic
 
                         onFinished: {
@@ -361,8 +423,8 @@ Variants {
             asynchronous: true
             active: Config.background.desktopClock.enabled
 
-            anchors.margins: Tokens.padding.large * 2
-            anchors.leftMargin: Tokens.padding.large * 2 + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.smaller, Config.border.thickness)
+            anchors.margins: Tokens.padding.extraLargeIncreased
+            anchors.leftMargin: Tokens.padding.extraLargeIncreased + Tokens.sizes.bar.innerWidth + Math.max(Tokens.padding.small, Config.border.thickness)
 
             state: Config.background.desktopClock.position
             states: [

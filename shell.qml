@@ -14,6 +14,8 @@ import Quickshell
 ShellRoot {
     settings.watchFiles: true
 
+    GSFLoader {}
+
     Background {}
     Drawers {}
     AreaPicker {}
@@ -22,6 +24,7 @@ ShellRoot {
     }
 
     ConfigToasts {}
+    LyricsDriver {}
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {
