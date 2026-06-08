@@ -24,6 +24,7 @@ ShellRoot {
     }
 
     ConfigToasts {}
+    LyricsDriver {}
     Shortcuts {}
     BatteryMonitor {}
     IdleMonitors {

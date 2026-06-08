@@ -3,6 +3,7 @@
 #include "configobject.hpp"
 
 #include <qstring.h>
+#include <qvariant.h>
 
 namespace caelestia::config {
 
@@ -65,6 +66,22 @@ public:
         : ConfigObject(parent) {}
 };
 
+class MediaWallpaperConfig : public ConfigObject {
+    Q_OBJECT
+    QML_ANONYMOUS
+
+    CONFIG_PROPERTY(bool, enabled, false)
+    CONFIG_PROPERTY(bool, showLyrics, true)
+    CONFIG_PROPERTY(int, trackDebounceMs, 450)
+    CONFIG_PROPERTY(int, pauseRestoreDelayMs, 30000)
+    CONFIG_PROPERTY(QVariantList, allowPlayers, {})
+    CONFIG_PROPERTY(QVariantList, blockPlayers, {})
+
+public:
+    explicit MediaWallpaperConfig(QObject* parent = nullptr)
+        : ConfigObject(parent) {}
+};
+
 class BackgroundConfig : public ConfigObject {
     Q_OBJECT
     QML_ANONYMOUS
@@ -73,12 +90,14 @@ class BackgroundConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, wallpaperEnabled, true)
     CONFIG_SUBOBJECT(DesktopClock, desktopClock)
     CONFIG_SUBOBJECT(BackgroundVisualiser, visualiser)
+    CONFIG_SUBOBJECT(MediaWallpaperConfig, mediaWallpaper)
 
 public:
     explicit BackgroundConfig(QObject* parent = nullptr)
         : ConfigObject(parent)
         , m_desktopClock(new DesktopClock(this))
-        , m_visualiser(new BackgroundVisualiser(this)) {}
+        , m_visualiser(new BackgroundVisualiser(this))
+        , m_mediaWallpaper(new MediaWallpaperConfig(this)) {}
 };
 
 } // namespace caelestia::config

@@ -1,6 +1,7 @@
 # Re-port plan: Media-art wallpaper + lyrics overlay
 
-**Status:** investigation & design only — no code written yet.
+**Status:** in progress — Phase 1 (config) + Phase 2 (lyrics driver) implemented
+on branch `feat/media-wallpaper`; remaining phases pending.
 **Author:** drafted with Claude (Opus 4.8), 2026-06-07.
 **Goal:** Re-implement the fork's "show media art cover as the wallpaper, with a
 synced lyrics overlay" feature on top of the new upstream architecture
@@ -181,20 +182,26 @@ registry.
 Each phase should build & run before moving on. Do the work on a feature branch
 off current `main` (e.g. `feat/media-wallpaper-report`), not on `main` directly.
 
-### Phase 0 — Lyrics driver (foundation)
-- Add a tiny singleton (e.g. `services/LyricsDriver.qml` or fold into an existing
-  always-loaded scope) that keeps `Lyrics.setTrack/clearTrack` synced to
-  `Players.active`, **independent of whether the dashboard is open**.
-- Make the dashboard `LyricList.qml` rely on it (remove its own `setTrack` side
-  effect, or leave it — but confirm no double-driving).
-- *Why first:* both the dashboard and the new overlay need lyrics to be driven
-  even when the dashboard is closed; centralising avoids two writers.
+### Phase 1 — Config (C++) ✅ done
+- Re-added `MediaWallpaperConfig` to `backgroundconfig.hpp` (matches the backup
+  branch: `enabled`, `showLyrics`, `trackDebounceMs`, `pauseRestoreDelayMs`,
+  `allowPlayers`, `blockPlayers`).
+- Build verified (`cmake --build build`). Needs `sudo cmake --install build` to
+  deploy. README config block still to update (Phase 6).
 
-### Phase 1 — Config (C++)
-- Re-add `MediaWallpaperConfig` to `backgroundconfig.hpp` exactly as in the
-  backup branch.
-- Rebuild the plugin; verify `Config.background.mediaWallpaper.*` resolves in QML
-  and round-trips through the JSON config + README example.
+### Phase 2 — Lyrics driver (foundation) ✅ done
+- Added `modules/LyricsDriver.qml` — a root-scope driver (same pattern as
+  `BatteryMonitor`/`ConfigToasts`), instantiated in `shell.qml`.
+- It keeps `Lyrics.setTrack/clearTrack` synced to `Players.active`
+  **independent of the dashboard**, so the wallpaper overlay has lyrics even
+  when the dashboard was never opened.
+- **Decision (was open question #1):** *gated* on
+  `background.mediaWallpaper.enabled && .showLyrics` so we preserve upstream's
+  lazy-lyrics intent (no lyric fetches when the overlay is off).
+- **Decision (was open question on double-driving):** `Lyrics::setTrack` is
+  idempotent (early-returns on unchanged track), so the driver and the
+  dashboard's own `LyricList` driver can coexist. We therefore **leave
+  upstream's `LyricList.qml` untouched** to minimise future merge friction.
 
 ### Phase 2 — Colour extraction
 - Re-apply the `external`-preview functions + `external` palette to
