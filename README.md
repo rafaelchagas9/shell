@@ -386,6 +386,14 @@ For example, to disable the bar on DP-1:
     "background": {
         "enabled": true,
         "wallpaperEnabled": true,
+        "mediaWallpaper": {
+            "enabled": false,
+            "showLyrics": true,
+            "trackDebounceMs": 450,
+            "pauseRestoreDelayMs": 30000,
+            "allowPlayers": [],
+            "blockPlayers": []
+        },
         "desktopClock": {
             "enabled": false,
             "scale": 1.0,

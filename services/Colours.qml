@@ -15,18 +15,34 @@ Singleton {
     property bool showPreview
     property string scheme
     property string flavour
-    readonly property bool light: showPreview ? previewLight : currentLight
+    readonly property bool light: showPreview ? previewLight : externalPreviewActive ? externalPreviewLight : currentLight
     property bool currentLight
     property bool previewLight
-    readonly property M3Palette palette: showPreview ? preview : current
+    readonly property M3Palette palette: showPreview ? preview : externalPreviewActive ? external : current
     readonly property M3TPalette tPalette: M3TPalette {}
     readonly property M3Palette current: M3Palette {}
+    readonly property M3Palette external: M3Palette {}
     readonly property M3Palette preview: M3Palette {}
     readonly property Transparency transparency: Transparency {}
     readonly property alias wallLuminance: analyser.luminance
 
     property bool cooldownPending
     property real lastBaseTransparency
+
+    // External (media-art) colour preview: when a media wallpaper is active and
+    // the scheme is "dynamic", a scheme is extracted from the album art and
+    // loaded into `external`, overriding `current` while `externalPreviewActive`.
+    property bool externalPreviewReady
+    property bool externalPreviewLight
+    property string externalPreviewPath
+    property string externalPreviewKey
+    property string composedPreviewSource
+    property string composedPreviewPath
+    property string composedPreviewKey
+    property string remotePreviewUrl
+    property string remotePreviewPath
+    property string remotePreviewKey
+    readonly property bool externalPreviewActive: !showPreview && externalPreviewReady && externalPreviewKey.length > 0
 
     function getLuminance(c: color): real {
         if (c.r == 0 && c.g == 0 && c.b == 0)
@@ -78,6 +94,142 @@ Singleton {
         }
     }
 
+    function loadExternalPreview(data: string): void {
+        const scheme = JSON.parse(data);
+
+        externalPreviewLight = scheme.mode === "light";
+
+        for (const [name, colour] of Object.entries(scheme.colours)) {
+            const propName = name.startsWith("term") ? name : `m3${name}`;
+            if (external.hasOwnProperty(propName))
+                external[propName] = `#${colour}`;
+        }
+
+        externalPreviewReady = true;
+    }
+
+    function shellQuote(value: string): string {
+        return `'${value.replace(/'/g, "'\\''")}'`;
+    }
+
+    function hashString(value: string): string {
+        let h1 = 0xdeadbeef;
+        let h2 = 0x41c6ce57;
+
+        for (let i = 0; i < value.length; i++) {
+            const ch = value.charCodeAt(i);
+            h1 = Math.imul(h1 ^ ch, 2654435761);
+            h2 = Math.imul(h2 ^ ch, 1597334677);
+        }
+
+        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+        h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+        h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+
+        return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
+    }
+
+    function remoteCachePath(url: string): string {
+        const cleanUrl = url.split("?")[0];
+        const match = cleanUrl.match(/\.([A-Za-z0-9]{1,5})$/);
+        const ext = match ? match[1].toLowerCase() : "img";
+        return `${Paths.imagecache}/mediawallpaper/${hashString(url)}.${ext}`;
+    }
+
+    function composedCachePath(cacheKey: string): string {
+        return `${Paths.imagecache}/mediawallpaper-composed/${hashString(`v1:${cacheKey}`)}.jpg`;
+    }
+
+    function previewComposedExternal(path: string, key: string, cacheKey: string): void {
+        if (scheme !== "dynamic" || !path || !key || !cacheKey)
+            return;
+
+        const composedPath = composedCachePath(cacheKey);
+
+        if (composedPreviewSource === path && composedPreviewKey === key && composedPreviewPath === composedPath && (composePreviewProc.running || (externalPreviewPath === composedPath && externalPreviewReady)))
+            return;
+
+        composedPreviewSource = path;
+        composedPreviewPath = composedPath;
+        composedPreviewKey = key;
+
+        if (externalPreviewProc.running)
+            externalPreviewProc.running = false;
+
+        externalPreviewPath = composedPath;
+        externalPreviewKey = key;
+        externalPreviewReady = false;
+
+        const quotedDir = shellQuote(`${Paths.imagecache}/mediawallpaper-composed`);
+        const quotedSource = shellQuote(path);
+        const quotedOut = shellQuote(composedPath);
+        composePreviewProc.command = ["sh", "-c", `mkdir -p ${quotedDir} && magick \\( ${quotedSource} -resize 1920x1080^ -gravity center -extent 1920x1080 -blur 0x24 \\) \\( -size 1920x1080 xc:'rgba(0,0,0,0.28)' \\) -compose over -composite \\( ${quotedSource} -resize 720x720 \\) -gravity center -compose over -composite ${quotedOut}`];
+        composePreviewProc.running = true;
+    }
+
+    function previewExternal(path: string, key: string): void {
+        if (scheme !== "dynamic" || !path || !key)
+            return;
+
+        if (externalPreviewPath === path && externalPreviewKey === key && externalPreviewReady)
+            return;
+
+        externalPreviewPath = path;
+        externalPreviewKey = key;
+        externalPreviewReady = false;
+        externalPreviewProc.command = ["caelestia", "wallpaper", "-p", path, ...(GlobalConfig.services.smartScheme ? [] : ["--no-smart"])];
+        externalPreviewProc.running = true;
+    }
+
+    function previewExternalRemote(url: string, key: string): void {
+        if (scheme !== "dynamic" || !url || !key)
+            return;
+
+        const cachePath = remoteCachePath(url);
+
+        if (remotePreviewUrl === url && remotePreviewKey === key && (remoteDownloadProc.running || (externalPreviewPath === cachePath && externalPreviewReady)))
+            return;
+
+        remotePreviewUrl = url;
+        remotePreviewKey = key;
+        remotePreviewPath = cachePath;
+
+        if (externalPreviewProc.running)
+            externalPreviewProc.running = false;
+
+        externalPreviewPath = cachePath;
+        externalPreviewKey = key;
+        externalPreviewReady = false;
+
+        const quotedDir = shellQuote(`${Paths.imagecache}/mediawallpaper`);
+        const quotedPath = shellQuote(cachePath);
+        const quotedUrl = shellQuote(url);
+        remoteDownloadProc.command = ["sh", "-c", `mkdir -p ${quotedDir} && curl -L --fail --silent --show-error ${quotedUrl} -o ${quotedPath}`];
+        remoteDownloadProc.running = true;
+    }
+
+    function clearExternalPreview(key: string): void {
+        if (key && externalPreviewKey !== key)
+            return;
+
+        remotePreviewUrl = "";
+        remotePreviewPath = "";
+        remotePreviewKey = "";
+        composedPreviewSource = "";
+        composedPreviewPath = "";
+        composedPreviewKey = "";
+        externalPreviewPath = "";
+        externalPreviewKey = "";
+        externalPreviewReady = false;
+        if (composePreviewProc.running)
+            composePreviewProc.running = false;
+        if (externalPreviewProc.running)
+            externalPreviewProc.running = false;
+        if (remoteDownloadProc.running)
+            remoteDownloadProc.running = false;
+    }
+
     function setMode(mode: string): void {
         Quickshell.execDetached(["caelestia", "scheme", "set", "--notify", "-m", mode]);
     }
@@ -116,7 +268,48 @@ Singleton {
     ImageAnalyser {
         id: analyser
 
-        source: Wallpapers.current
+        source: root.showPreview ? Wallpapers.previewPath : root.externalPreviewActive ? root.externalPreviewPath : Wallpapers.current
+    }
+
+    Process {
+        id: externalPreviewProc
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (root.externalPreviewPath.length === 0)
+                    return;
+
+                root.loadExternalPreview(text);
+            }
+        }
+    }
+
+    Process {
+        id: composePreviewProc
+
+        onExited: exitCode => { // qmllint disable signal-handler-parameters
+            if (exitCode !== 0)
+                return;
+
+            if (!root.composedPreviewPath || !root.composedPreviewKey)
+                return;
+
+            root.previewExternal(root.composedPreviewPath, root.composedPreviewKey);
+        }
+    }
+
+    Process {
+        id: remoteDownloadProc
+
+        onExited: exitCode => { // qmllint disable signal-handler-parameters
+            if (exitCode !== 0)
+                return;
+
+            if (!root.remotePreviewPath || !root.remotePreviewKey)
+                return;
+
+            root.previewComposedExternal(root.remotePreviewPath, root.remotePreviewKey, root.remotePreviewUrl);
+        }
     }
 
     Timer {

@@ -1,7 +1,9 @@
 # Re-port plan: Media-art wallpaper + lyrics overlay
 
-**Status:** in progress — Phase 1 (config) + Phase 2 (lyrics driver) implemented
-on branch `feat/media-wallpaper`; remaining phases pending.
+**Status:** feature-complete on branch `feat/media-wallpaper` — all phases
+implemented (config, lyrics driver, colour extraction, media rendering, lyrics
+overlay, nexus toggles, docs). Pending: manual test-matrix run on real hardware
+(§7) and `sudo cmake --install` / `./dev.sh install` to deploy the rebuilt plugin.
 **Author:** drafted with Claude (Opus 4.8), 2026-06-07.
 **Goal:** Re-implement the fork's "show media art cover as the wallpaper, with a
 synced lyrics overlay" feature on top of the new upstream architecture
@@ -203,39 +205,47 @@ off current `main` (e.g. `feat/media-wallpaper-report`), not on `main` directly.
   dashboard's own `LyricList` driver can coexist. We therefore **leave
   upstream's `LyricList.qml` untouched** to minimise future merge friction.
 
-### Phase 2 — Colour extraction
-- Re-apply the `external`-preview functions + `external` palette to
-  `services/Colours.qml`.
-- Verify `ImageAnalyser.source` switch and the `caelestia wallpaper -p` /
-  `curl` / `magick` external processes still behave (paths under
-  `Paths.imagecache`).
-- Gate strictly on `scheme === "dynamic"` as before.
+### Phase 3 — Colour extraction ✅ done
+- Re-applied the `external`-preview functions + `external` palette to
+  `services/Colours.qml` (`loadExternalPreview`, `previewExternal`,
+  `previewExternalRemote`, `previewComposedExternal`, `clearExternalPreview`,
+  plus the `hashString`/`shellQuote`/cache-path helpers and the three backing
+  `Process` objects).
+- `ImageAnalyser.source` now switches to `externalPreviewPath` while a media
+  preview is active. Gated strictly on `scheme === "dynamic"`.
+- **Note:** kept upstream's new `requestReloadHyprRules`/`cooldownTimer` logic
+  (did **not** regress to the old `debounceTimer`), and left out the old
+  `Hyprland.usingLua` branch (out of scope per §3.5 / open question #4).
 
-### Phase 3 — Media wallpaper rendering
-- Re-introduce the blurred backdrop + cover-art layers into the new
-  `Wallpaper.qml` (local + remote variants), plus the debounce + pause-restore
-  timers and the `mediaCanDisplay` gate.
-- Decide: keep a re-created `WallpaperImage.qml`, or layer media on top of the
-  new `imgComp` approach. (Lean: add media layers as siblings, keep upstream's
-  static-wallpaper code path untouched.)
+### Phase 4 — Media wallpaper rendering ✅ done
+- Added the blurred backdrop + scrim + cover-art layers (local **and** remote
+  variants) into the new `Wallpaper.qml` as **siblings** of upstream's static
+  `imgComp` path, plus the `trackDebounce` + `pauseRestoreTimer` timers and the
+  `mediaCanDisplay` gate.
+- `WallpaperImage.qml` was **not** re-created — upstream's static-wallpaper code
+  path is untouched; `source` now gates on `staticWallpaperEnabled` so media can
+  display with the static wallpaper disabled.
 
-### Phase 4 — Lyrics overlay
-- Re-add the overlay (from old `Background.qml`) but rewired:
-  - lines from `Lyrics.lyrics[idx]` instead of `model.get(idx).lyricLine`.
-  - current index from `Lyrics.indexForTime(Players.active.position)`.
-  - add the position-poll `Timer` (only running while overlay visible).
-  - drop `isManualSeeking`-based animation branch (or re-derive a "seek" as a
-    large index jump).
-- Gate on `Config.background.mediaWallpaper.showLyrics` + `Lyrics.hasLyrics`.
+### Phase 5 — Lyrics overlay ✅ done
+- Re-added the 5-line overlay in `Background.qml`, rewired to the new API:
+  lines from `Lyrics.lyrics[idx]`, index from
+  `Lyrics.indexForTime(Players.active?.position ?? 0)`, gated on
+  `mediaCanDisplay` + `showLyrics` + `Lyrics.hasLyrics`.
+- Added the position-poll `Timer` (runs only while the overlay is visible and
+  playing, interval `GlobalConfig.dashboard.mediaUpdateInterval`).
+- **Decision (open question #2):** dropped `isManualSeeking`; non-adjacent index
+  jumps already snap instantly via `syncDisplayedLyricIndex`, so seeks just use
+  the normal slide duration.
 
-### Phase 5 — nexus settings UI
-- Add `ToggleRow`s to `WallpaperAndStyle.qml`: "Media wallpaper",
-  "Show lyrics on wallpaper".
-- Optionally a subpage for debounce/delay/allow-block lists.
+### Phase 6 — nexus settings UI ✅ done
+- Added two `ToggleRow`s to `WallpaperAndStyle.qml`: "Media wallpaper" and
+  "Lyrics on wallpaper" (the latter disabled unless media wallpaper is on).
+- Subpage for debounce/delay/allow-block lists deferred (open question #3): the
+  numeric/list keys remain editable via `shell.json`.
 
-### Phase 6 — Docs & polish
-- Update `README.md` `background` config block with the `mediaWallpaper` keys.
-- Manual test matrix (below).
+### Phase 7 — Docs & polish ✅ done
+- Updated `README.md` `background` config block with the `mediaWallpaper` keys.
+- Manual test matrix (below) still to be run on real hardware.
 
 ---
 

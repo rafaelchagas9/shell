@@ -183,6 +183,27 @@ PageBase {
             Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
             Layout.fillWidth: true
 
+            text: qsTr("Media wallpaper")
+            subtext: qsTr("Show album art as wallpaper while media plays")
+            checked: Config.background.mediaWallpaper.enabled
+            onToggled: GlobalConfig.background.mediaWallpaper.enabled = checked
+        }
+
+        ToggleRow {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+            Layout.fillWidth: true
+
+            text: qsTr("Lyrics on wallpaper")
+            subtext: qsTr("Overlay synced lyrics on the media wallpaper")
+            enabled: Config.background.mediaWallpaper.enabled
+            checked: Config.background.mediaWallpaper.showLyrics
+            onToggled: GlobalConfig.background.mediaWallpaper.showLyrics = checked
+        }
+
+        ToggleRow {
+            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
+            Layout.fillWidth: true
+
             text: qsTr("Transparency")
             subtext: qsTr("Base %1, layers %2").arg(Colours.transparency.base).arg(Colours.transparency.layers)
             checked: Colours.transparency.enabled
