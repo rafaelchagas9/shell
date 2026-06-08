@@ -265,101 +265,42 @@ Item {
     // Explicit z keeps these above the static wallpaper image, which upstream
     // creates dynamically (imgComp.createObject) *after* these declared layers
     // and would otherwise paint over them.
-    Item {
-        id: mediaSurface
+    Loader {
+        id: mediaBackdropLoader
 
         z: 1
         anchors.fill: parent
-
-        // The whole media surface fades in when media mode activates and out on
-        // pause-restore (Material fade-through). Inner content stays alive while
-        // opacity > 0 so the fade-out actually plays.
-        readonly property bool shown: root.mediaCanDisplay && root.debouncedMediaArtUrl.length > 0
-        opacity: shown ? 1 : 0
-        visible: opacity > 0
-
-        Behavior on opacity {
-            Anim {
-                type: Anim.SlowEffects
-            }
-        }
-
-        // Blurred backdrop; cross-fades between album arts on track change.
-        FadeImage {
-            anchors.fill: parent
-            source: mediaSurface.visible ? root.debouncedMediaArtUrl : ""
-            smooth: true
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                blurEnabled: true
-                blur: 1
-                blurMax: 64
-                saturation: 0.75
-                brightness: -0.08
-                autoPaddingEnabled: false
-            }
-        }
-
-        // Scrim for depth / legibility behind the cover.
-        Rectangle {
-            anchors.fill: parent
-            color: Qt.alpha("black", 0.28)
-        }
-
-        Loader {
-            id: coverArtLoader
-
-            anchors.centerIn: parent
-            width: Math.min(parent.width, parent.height) * 0.5
-            height: width
-            active: mediaSurface.visible
-            asynchronous: true
-            sourceComponent: coverArt
-        }
+        active: root.mediaCanDisplay && root.debouncedMediaArtUrl.length > 0
+        asynchronous: true
+        sourceComponent: root.debouncedMediaArtPath.length > 0 ? localMediaBackdrop : remoteMediaBackdrop
     }
 
-    // Rounded cover with a drop shadow. Scales + fades in on first appearance and
-    // "breathes" subtly with the audio (Audio.cava bass level). The wrapper is
-    // layer-backed, so scaling is just a cheap transform on the cached texture.
+    Rectangle {
+        z: 2
+        anchors.fill: parent
+        visible: root.mediaCanDisplay
+        color: Qt.alpha("black", 0.28)
+    }
+
+    Loader {
+        id: coverArtLoader
+
+        z: 3
+        anchors.centerIn: parent
+        width: Math.min(parent.width, parent.height) * 0.5
+        height: width
+        active: root.mediaCanDisplay && root.debouncedMediaArtUrl.length > 0
+        asynchronous: true
+        sourceComponent: coverArt
+    }
+
+    // Rounded cover with a drop shadow: the image is clipped to a rounded rect,
+    // and the shadow is taken from the rounded composite via the wrapper's layer.
     Component {
         id: coverArt
 
         Item {
-            id: coverWrap
-
             anchors.fill: parent
-            transformOrigin: Item.Center
-
-            // Entrance: 0 -> 1 drives both the scale-in and the fade-in.
-            property real entered: 0
-            // Beat: smoothed bass level from the visualiser audio (cava), 0 -> 1.
-            property real beat: {
-                const vals = Audio.cava.values;
-                if (!vals || vals.length === 0)
-                    return 0;
-                const n = Math.max(1, Math.floor(vals.length / 4));
-                let sum = 0;
-                for (let i = 0; i < n; i++)
-                    sum += vals[i];
-                return Math.min(1, sum / n);
-            }
-
-            opacity: entered
-            scale: (0.92 + 0.08 * entered) * (1 + 0.03 * beat)
-
-            Component.onCompleted: entered = 1
-
-            Behavior on entered {
-                Anim {
-                    type: Anim.EmphasizedLarge
-                }
-            }
-            Behavior on beat {
-                Anim {
-                    type: Anim.FastEffects
-                }
-            }
 
             layer.enabled: true
             layer.effect: MultiEffect {
@@ -374,12 +315,80 @@ Item {
                 anchors.fill: parent
                 radius: Tokens.rounding.large
 
-                FadeImage {
+                Loader {
                     anchors.fill: parent
-                    source: root.debouncedMediaArtUrl
-                    smooth: true
+                    sourceComponent: root.debouncedMediaArtPath.length > 0 ? localCoverArt : remoteCoverArt
                 }
             }
+        }
+    }
+
+    Component {
+        id: localMediaBackdrop
+
+        CachingImage {
+            anchors.fill: parent
+            path: root.debouncedMediaArtPath
+            smooth: true
+
+            layer.enabled: visible
+            layer.effect: MultiEffect {
+                blurEnabled: true
+                blur: 1
+                blurMax: 64
+                saturation: 0.75
+                brightness: -0.08
+                autoPaddingEnabled: false
+            }
+        }
+    }
+
+    Component {
+        id: remoteMediaBackdrop
+
+        Image {
+            anchors.fill: parent
+            source: root.debouncedMediaArtUrl
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            mipmap: true
+            smooth: true
+            sourceSize: Qt.size(width, height)
+
+            layer.enabled: visible
+            layer.effect: MultiEffect {
+                blurEnabled: true
+                blur: 1
+                blurMax: 64
+                saturation: 0.75
+                brightness: -0.08
+                autoPaddingEnabled: false
+            }
+        }
+    }
+
+    Component {
+        id: localCoverArt
+
+        CachingImage {
+            anchors.fill: parent
+            fillMode: Image.PreserveAspectCrop
+            path: root.debouncedMediaArtPath
+            smooth: true
+        }
+    }
+
+    Component {
+        id: remoteCoverArt
+
+        Image {
+            anchors.fill: parent
+            source: root.debouncedMediaArtUrl
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            mipmap: true
+            smooth: true
+            sourceSize: Qt.size(width, height)
         }
     }
 }

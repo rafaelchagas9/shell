@@ -171,15 +171,12 @@ Variants {
                 Component.onCompleted: syncDisplayedLyricIndex()
 
                 anchors.fill: parent
-                // Present whenever lyrics could show; the plate itself fades in/out
-                // on `hasLyric` so it can animate (and so intros without a line just
-                // show an empty, invisible plate rather than popping).
-                visible: mediaModeActive && Config.background.mediaWallpaper.showLyrics
+                visible: mediaModeActive && Config.background.mediaWallpaper.showLyrics && hasLyric
 
                 // Forces MprisPlayer.position to refresh so indexForTime advances.
-                // Gated on playback (not on a visible lyric line): the plate only
-                // fades in once a line is reached, which needs the position to
-                // advance — gating this on that would deadlock on intros.
+                // Must NOT be gated on `visible`: the overlay only becomes visible
+                // once a non-empty lyric line is reached, which itself needs the
+                // position to advance — gating on visible would deadlock on intros.
                 Timer {
                     running: mediaLyricsOverlay.mediaModeActive && Config.background.mediaWallpaper.showLyrics && (Players.active?.isPlaying ?? false)
                     interval: GlobalConfig.dashboard.mediaUpdateInterval
@@ -197,23 +194,6 @@ Variants {
                     anchors.topMargin: Math.max(Tokens.padding.large * 2, parent.height * 0.06)
                     width: Math.min(parent.width * 0.82, 1200)
                     height: lyricViewport.height + Tokens.padding.large * 2
-
-                    // Fade + scale in when lyrics appear, out when they end
-                    // (Material emphasized motion).
-                    transformOrigin: Item.Top
-                    opacity: mediaLyricsOverlay.hasLyric ? 1 : 0
-                    scale: mediaLyricsOverlay.hasLyric ? 1 : 0.96
-
-                    Behavior on opacity {
-                        Anim {
-                            type: Anim.SlowEffects
-                        }
-                    }
-                    Behavior on scale {
-                        Anim {
-                            type: Anim.EmphasizedLarge
-                        }
-                    }
 
                     // Material elevation: a rounded surface behind the frosted
                     // glass, layered so MultiEffect casts a soft drop shadow.
