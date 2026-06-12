@@ -8,6 +8,7 @@ import Caelestia.Config
 import Caelestia.Services
 import qs.components
 import qs.components.containers
+import qs.components.effects
 import qs.services
 
 Variants {
@@ -195,56 +196,20 @@ Variants {
                     width: Math.min(parent.width * 0.82, 1200)
                     height: lyricViewport.height + Tokens.padding.large * 2
 
-                    // Material elevation: a rounded surface behind the frosted
-                    // glass, layered so MultiEffect casts a soft drop shadow.
-                    Rectangle {
+                    // Tonal Material surface: the backdrop behind is already
+                    // blurred album art, so a translucent surfaceContainer reads
+                    // as frosted glass without a live ShaderEffectSource recapture
+                    // (which would re-render every frame while the cover spins).
+                    Elevation {
                         anchors.fill: parent
                         radius: lyricPlate.plateRadius
-                        color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.5)
-
-                        layer.enabled: true
-                        layer.effect: MultiEffect {
-                            shadowEnabled: true
-                            shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.5)
-                            shadowBlur: 1
-                            shadowVerticalOffset: 4
-                        }
+                        level: 2
                     }
 
-                    // Frosted glass: capture the wallpaper region behind the plate,
-                    // blur it, then lay a translucent Material surfaceContainer over
-                    // it so text contrast stays consistent over any album art.
-                    StyledClippingRect {
+                    StyledRect {
                         anchors.fill: parent
                         radius: lyricPlate.plateRadius
-                        color: "transparent"
-
-                        ShaderEffectSource {
-                            id: plateFrostSource
-
-                            anchors.fill: parent
-                            sourceItem: wallpaper
-                            sourceRect: Qt.rect(lyricPlate.x, lyricPlate.y, lyricPlate.width, lyricPlate.height)
-                            live: true
-                            recursive: false
-                            hideSource: false
-                            // Left visible (not culled) so its FBO keeps updating;
-                            // the opaque blurred MultiEffect + scrim cover it fully.
-                        }
-
-                        MultiEffect {
-                            anchors.fill: parent
-                            source: plateFrostSource
-                            blurEnabled: true
-                            blur: 1
-                            blurMax: 48
-                            saturation: -0.1
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.58)
-                        }
+                        color: Qt.alpha(Colours.palette.m3surfaceContainer, 0.75)
                     }
 
                     // Subtle Material hairline outline.
@@ -372,7 +337,10 @@ Variants {
                     Loader {
                         id: currentLyricEffectLoader
 
-                        anchors.fill: currentLyricEffectProxy
+                        x: lyricViewport.x + currentLyricEffectProxy.x
+                        y: lyricViewport.y + currentLyricEffectProxy.y
+                        width: currentLyricEffectProxy.width
+                        height: currentLyricEffectProxy.height
                         active: mediaLyricsOverlay.visible && mediaLyricsOverlay.currentLyricLine.length > 0
                         asynchronous: true
 
@@ -394,13 +362,12 @@ Variants {
                         }
                     }
 
-                    NumberAnimation {
+                    Anim {
                         id: slideAnimation
 
                         target: mediaLyricsOverlay
                         property: "stackOffset"
-                        duration: Tokens.anim.durations.normal
-                        easing.type: Easing.OutCubic
+                        type: Anim.Emphasized
 
                         onFinished: {
                             mediaLyricsOverlay.stackOffset = -mediaLyricsOverlay.lineSlotHeight;

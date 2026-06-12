@@ -12,6 +12,63 @@
 
 https://github.com/user-attachments/assets/0840f496-575c-4ca6-83a8-87bb01a85c5f
 
+---
+
+> [!NOTE]  
+> **Media Wallpaper Fork**  
+> This repository is a fork of the original [caelestia-shell](https://github.com/caelestia-dots/shell). It adds functional support for grabbing the currently playing media (from Spotify, browsers, or other MPRIS clients) and displaying it dynamically as your desktop wallpaper, complete with synced scrolling lyrics and Material You color generation based on the active cover art.
+
+## Media Wallpaper Fork Features 🎵
+
+This fork enhances the shell experience by turning your desktop background into a live, media-reactive canvas.
+
+### Key Additions:
+1. **Dynamic Media Backdrop**: Automatically grabs the cover art of your active media and sets it as a blurred background with a centered cover art disc/album image.
+2. **Dynamic Material Color Schemes**: Just like setting a normal static wallpaper, applications like Chromium browser, Spotify, and the terminal will dynamically update their color schemes to match the colors extracted from the active media's album art.
+3. **Synced Lyrics Overlay**: Renders a beautiful 5-line scrolling overlay on your desktop for songs that have synchronized lyrics. When no lyrics are available, the song metadata is shown cleanly.
+
+### Previews
+
+#### Dynamic Color Scheme Adaptation
+Watch how applications like the terminal, Spotify, and Chromium browser change their color palettes harmoniously to match the currently playing media:
+
+| Color Scheme Example 1 | Color Scheme Example 2 |
+| :---: | :---: |
+| ![Color Scheme 1](./assets/previews/color_scheme1.png) | ![Color Scheme 2](./assets/previews/color_scheme2.png) |
+
+#### Wallpaper Layout & Synced Lyrics
+The desktop background dynamically reacts to whether the song has synced lyrics available:
+
+| Song with Synced Lyrics | Song without Lyrics (Fallback) |
+| :---: | :---: |
+| ![Song with Lyrics](./assets/previews/lyrics.png) | ![Song without Lyrics](./assets/previews/no_lyrics.png) |
+
+### Configuration
+
+You can enable and customize the media wallpaper options in `~/.config/caelestia/shell.json` under the `background.mediaWallpaper` section:
+
+```json
+"background": {
+    "mediaWallpaper": {
+        "enabled": true,       // Set to true to enable the media wallpaper
+        "showLyrics": true,     // Enable the scrolling lyrics overlay
+        "showDetails": true,    // Show track info/details
+        "showVisualiser": true, // Show audio visualiser
+        "spinCover": true,      // Spin the cover art like a vinyl record
+        "coverSize": 0.42,
+        "scrimOpacity": 0.35,
+        "trackDebounceMs": 450,
+        "pauseRestoreDelayMs": 30000,
+        "allowPlayers": [],     // Restrict to specific MPRIS players
+        "blockPlayers": []      // Block specific MPRIS players
+    }
+}
+```
+
+These settings are also accessible via the Settings UI (**nexus**) in the **Wallpaper & Style** page.
+
+---
+
 ## Components
 
 -   Widgets: [`Quickshell`](https://quickshell.outfoxxed.me)
@@ -390,6 +447,11 @@ For example, to disable the bar on DP-1:
         "mediaWallpaper": {
             "enabled": false,
             "showLyrics": true,
+            "showDetails": true,
+            "showVisualiser": true,
+            "spinCover": true,
+            "coverSize": 0.42,
+            "scrimOpacity": 0.35,
             "trackDebounceMs": 450,
             "pauseRestoreDelayMs": 30000,
             "allowPlayers": [],

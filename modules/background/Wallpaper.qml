@@ -1,11 +1,13 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Effects
+import Quickshell
+import Quickshell.Io
 import Caelestia.Config
 import qs.components
 import qs.components.filedialog
 import qs.components.images
+import qs.modules.background.media
 import qs.services
 import qs.utils
 
@@ -46,8 +48,49 @@ Item {
     readonly property string debouncedMediaArtPath: debouncedMediaArtUrl.startsWith("http") ? "" : Paths.toLocalFile(debouncedMediaArtUrl)
 
     property string debouncedMediaArtUrl: ""
+    property string mediaDisplayArtUrl: ""
     property string pendingMediaArtUrl: ""
+    property string remoteDisplayUrl: ""
+    property string remoteDisplayPath: ""
     property bool pauseTimedOut: false
+
+    function fileUrl(path: string): string {
+        return path.length > 0 ? `file://${path}` : "";
+    }
+
+    function syncMediaDisplayArtUrl(): void {
+        if (!debouncedMediaArtUrl) {
+            remoteDisplayUrl = "";
+            remoteDisplayPath = "";
+            mediaDisplayArtUrl = "";
+            if (remoteDisplayDownload.running)
+                remoteDisplayDownload.running = false;
+            return;
+        }
+
+        if (!debouncedMediaArtUrl.startsWith("http")) {
+            remoteDisplayUrl = "";
+            remoteDisplayPath = "";
+            mediaDisplayArtUrl = debouncedMediaArtUrl;
+            if (remoteDisplayDownload.running)
+                remoteDisplayDownload.running = false;
+            return;
+        }
+
+        const cachePath = Colours.remoteCachePath(debouncedMediaArtUrl);
+        if (remoteDisplayUrl === debouncedMediaArtUrl && remoteDisplayPath === cachePath && (remoteDisplayDownload.running || mediaDisplayArtUrl === fileUrl(cachePath)))
+            return;
+
+        remoteDisplayUrl = debouncedMediaArtUrl;
+        remoteDisplayPath = cachePath;
+        mediaDisplayArtUrl = "";
+
+        const quotedDir = Colours.shellQuote(`${Paths.imagecache}/mediawallpaper`);
+        const quotedPath = Colours.shellQuote(cachePath);
+        const quotedUrl = Colours.shellQuote(debouncedMediaArtUrl);
+        remoteDisplayDownload.command = ["sh", "-c", `mkdir -p ${quotedDir} && curl -L --fail --silent --show-error ${quotedUrl} -o ${quotedPath}`];
+        remoteDisplayDownload.running = true;
+    }
 
     function syncDynamicColours(): void {
         if (root.mediaCanDisplay && root.debouncedMediaArtPath.length > 0)
@@ -88,7 +131,10 @@ Item {
         syncDynamicColours();
     }
 
-    onDebouncedMediaArtUrlChanged: syncDynamicColours()
+    onDebouncedMediaArtUrlChanged: {
+        syncMediaDisplayArtUrl();
+        syncDynamicColours();
+    }
 
     onMediaPlayerChanged: {
         if (!mediaPlayer || !mediaAllowed || mediaArtUrl.length === 0) {
@@ -126,6 +172,7 @@ Item {
             completed = true;
 
         syncDynamicColours();
+        syncMediaDisplayArtUrl();
     }
 
     Connections {
@@ -161,6 +208,17 @@ Item {
 
         interval: root.mediaPauseRestoreDelayMs
         onTriggered: root.pauseTimedOut = true
+    }
+
+    Process {
+        id: remoteDisplayDownload
+
+        onExited: exitCode => { // qmllint disable signal-handler-parameters
+            if (root.remoteDisplayUrl !== root.debouncedMediaArtUrl)
+                return;
+
+            root.mediaDisplayArtUrl = exitCode === 0 ? root.fileUrl(root.remoteDisplayPath) : root.debouncedMediaArtUrl;
+        }
     }
 
     Loader {
@@ -261,134 +319,26 @@ Item {
         }
     }
 
-    // --- Media wallpaper layers (sit on top of the static wallpaper) --------
-    // Explicit z keeps these above the static wallpaper image, which upstream
-    // creates dynamically (imgComp.createObject) *after* these declared layers
-    // and would otherwise paint over them.
+    // --- Media wallpaper scene (sits on top of the static wallpaper) --------
+    // Explicit z keeps it above the static wallpaper image, which upstream
+    // creates dynamically (imgComp.createObject) *after* this declared loader
+    // and would otherwise paint over it.
     Loader {
-        id: mediaBackdropLoader
-
         z: 1
         anchors.fill: parent
-        active: root.mediaCanDisplay && root.debouncedMediaArtUrl.length > 0
+
+        opacity: root.mediaCanDisplay && root.mediaDisplayArtUrl.length > 0 ? 1 : 0
+        active: opacity > 0
         asynchronous: true
-        sourceComponent: root.debouncedMediaArtPath.length > 0 ? localMediaBackdrop : remoteMediaBackdrop
-    }
 
-    Rectangle {
-        z: 2
-        anchors.fill: parent
-        visible: root.mediaCanDisplay
-        color: Qt.alpha("black", 0.28)
-    }
-
-    Loader {
-        id: coverArtLoader
-
-        z: 3
-        anchors.centerIn: parent
-        width: Math.min(parent.width, parent.height) * 0.5
-        height: width
-        active: root.mediaCanDisplay && root.debouncedMediaArtUrl.length > 0
-        asynchronous: true
-        sourceComponent: coverArt
-    }
-
-    // Rounded cover with a drop shadow: the image is clipped to a rounded rect,
-    // and the shadow is taken from the rounded composite via the wrapper's layer.
-    Component {
-        id: coverArt
-
-        Item {
-            anchors.fill: parent
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Qt.alpha(Colours.palette.m3shadow, 0.75)
-                shadowBlur: 0.9
-                shadowVerticalOffset: 6
-                autoPaddingEnabled: true
-            }
-
-            StyledClippingRect {
-                anchors.fill: parent
-                radius: Tokens.rounding.large
-
-                Loader {
-                    anchors.fill: parent
-                    sourceComponent: root.debouncedMediaArtPath.length > 0 ? localCoverArt : remoteCoverArt
-                }
-            }
+        sourceComponent: MediaScene {
+            artUrl: root.mediaDisplayArtUrl
         }
-    }
 
-    Component {
-        id: localMediaBackdrop
-
-        CachingImage {
-            anchors.fill: parent
-            path: root.debouncedMediaArtPath
-            smooth: true
-
-            layer.enabled: visible
-            layer.effect: MultiEffect {
-                blurEnabled: true
-                blur: 1
-                blurMax: 64
-                saturation: 0.75
-                brightness: -0.08
-                autoPaddingEnabled: false
+        Behavior on opacity {
+            Anim {
+                type: Anim.SlowEffects
             }
-        }
-    }
-
-    Component {
-        id: remoteMediaBackdrop
-
-        Image {
-            anchors.fill: parent
-            source: root.debouncedMediaArtUrl
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            mipmap: true
-            smooth: true
-            sourceSize: Qt.size(width, height)
-
-            layer.enabled: visible
-            layer.effect: MultiEffect {
-                blurEnabled: true
-                blur: 1
-                blurMax: 64
-                saturation: 0.75
-                brightness: -0.08
-                autoPaddingEnabled: false
-            }
-        }
-    }
-
-    Component {
-        id: localCoverArt
-
-        CachingImage {
-            anchors.fill: parent
-            fillMode: Image.PreserveAspectCrop
-            path: root.debouncedMediaArtPath
-            smooth: true
-        }
-    }
-
-    Component {
-        id: remoteCoverArt
-
-        Image {
-            anchors.fill: parent
-            source: root.debouncedMediaArtUrl
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            mipmap: true
-            smooth: true
-            sourceSize: Qt.size(width, height)
         }
     }
 }

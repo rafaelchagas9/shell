@@ -72,6 +72,11 @@ class MediaWallpaperConfig : public ConfigObject {
 
     CONFIG_PROPERTY(bool, enabled, false)
     CONFIG_PROPERTY(bool, showLyrics, true)
+    CONFIG_PROPERTY(bool, showDetails, true)
+    CONFIG_PROPERTY(bool, showVisualiser, true)
+    CONFIG_PROPERTY(bool, spinCover, true)
+    CONFIG_PROPERTY(qreal, coverSize, 0.42)
+    CONFIG_PROPERTY(qreal, scrimOpacity, 0.35)
     CONFIG_PROPERTY(int, trackDebounceMs, 450)
     CONFIG_PROPERTY(int, pauseRestoreDelayMs, 30000)
     CONFIG_PROPERTY(QVariantList, allowPlayers, {})

@@ -36,6 +36,7 @@ Singleton {
     property bool externalPreviewLight
     property string externalPreviewPath
     property string externalPreviewKey
+    property string externalAppliedPath
     property string composedPreviewSource
     property string composedPreviewPath
     property string composedPreviewKey
@@ -106,6 +107,7 @@ Singleton {
         }
 
         externalPreviewReady = true;
+        applyExternalTheme(data);
     }
 
     function shellQuote(value: string): string {
@@ -139,6 +141,34 @@ Singleton {
 
     function composedCachePath(cacheKey: string): string {
         return `${Paths.imagecache}/mediawallpaper-composed/${hashString(`v1:${cacheKey}`)}.jpg`;
+    }
+
+    function externalSchemeCachePath(key: string): string {
+        return `${Paths.imagecache}/mediawallpaper-schemes/${hashString(`v1:${key}`)}.json`;
+    }
+
+    function applyExternalTheme(data: string): void {
+        if (!externalPreviewPath || externalAppliedPath === externalPreviewPath)
+            return;
+
+        const schemePath = externalSchemeCachePath(externalPreviewKey);
+        const quotedDir = shellQuote(`${Paths.imagecache}/mediawallpaper-schemes`);
+        const quotedSchemePath = shellQuote(schemePath);
+        const quotedData = shellQuote(data);
+        const quotedScript = shellQuote(Quickshell.shellPath("utils/scripts/apply-scheme-json.py"));
+
+        applyExternalThemeProc.command = ["sh", "-c", `mkdir -p ${quotedDir} && printf '%s' ${quotedData} > ${quotedSchemePath} && python -B ${quotedScript} ${quotedSchemePath}`];
+        externalAppliedPath = externalPreviewPath;
+        applyExternalThemeProc.running = true;
+    }
+
+    function restoreWallpaperTheme(): void {
+        if (!externalAppliedPath || !Wallpapers.actualCurrent)
+            return;
+
+        externalAppliedPath = "";
+        restoreWallpaperThemeProc.command = ["caelestia", "wallpaper", "-f", Wallpapers.actualCurrent, ...(GlobalConfig.services.smartScheme ? [] : ["--no-smart"])];
+        restoreWallpaperThemeProc.running = true;
     }
 
     function previewComposedExternal(path: string, key: string, cacheKey: string): void {
@@ -178,7 +208,14 @@ Singleton {
         externalPreviewPath = path;
         externalPreviewKey = key;
         externalPreviewReady = false;
-        externalPreviewProc.command = ["caelestia", "wallpaper", "-p", path, ...(GlobalConfig.services.smartScheme ? [] : ["--no-smart"])];
+        if (GlobalConfig.services.smartScheme) {
+            // Smart variant from the art, but keep the user's light/dark mode
+            // instead of letting a bright cover flip the whole system.
+            const script = Quickshell.shellPath("utils/scripts/print-scheme-for-art.py");
+            externalPreviewProc.command = ["python", "-B", script, path, root.currentLight ? "light" : "dark"];
+        } else {
+            externalPreviewProc.command = ["caelestia", "wallpaper", "-p", path, "--no-smart"];
+        }
         externalPreviewProc.running = true;
     }
 
@@ -222,12 +259,15 @@ Singleton {
         externalPreviewPath = "";
         externalPreviewKey = "";
         externalPreviewReady = false;
+        restoreWallpaperTheme();
         if (composePreviewProc.running)
             composePreviewProc.running = false;
         if (externalPreviewProc.running)
             externalPreviewProc.running = false;
         if (remoteDownloadProc.running)
             remoteDownloadProc.running = false;
+        if (applyExternalThemeProc.running)
+            applyExternalThemeProc.running = false;
     }
 
     function setMode(mode: string): void {
@@ -310,6 +350,14 @@ Singleton {
 
             root.previewComposedExternal(root.remotePreviewPath, root.remotePreviewKey, root.remotePreviewUrl);
         }
+    }
+
+    Process {
+        id: applyExternalThemeProc
+    }
+
+    Process {
+        id: restoreWallpaperThemeProc
     }
 
     Timer {

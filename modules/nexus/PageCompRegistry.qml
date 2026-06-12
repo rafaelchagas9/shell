@@ -33,6 +33,9 @@ QtObject {
                 Component {
                     ColourSelect {}
                 }
+                Component {
+                    MediaWallpaperPage {}
+                }
             }
         },
 

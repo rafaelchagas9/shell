@@ -168,6 +168,18 @@ PageBase {
                 verticalPadding: Tokens.padding.medium
                 onClicked: root.nState.openSubPage(3) // Colours page
             }
+
+            IconTextButton {
+                icon: "art_track"
+                text: qsTr("Media")
+                font: Tokens.font.body.large
+                isRound: true
+                shapeMorph: true
+                type: IconTextButton.Tonal
+                horizontalPadding: Tokens.padding.extraLarge
+                verticalPadding: Tokens.padding.medium
+                onClicked: root.nState.openSubPage(4) // Media wallpaper page
+            }
         }
 
         ToggleRow {
@@ -187,17 +199,6 @@ PageBase {
             subtext: qsTr("Show album art as wallpaper while media plays")
             checked: Config.background.mediaWallpaper.enabled
             onToggled: GlobalConfig.background.mediaWallpaper.enabled = checked
-        }
-
-        ToggleRow {
-            Layout.topMargin: Tokens.spacing.extraSmall / 2 - parent.spacing
-            Layout.fillWidth: true
-
-            text: qsTr("Lyrics on wallpaper")
-            subtext: qsTr("Overlay synced lyrics on the media wallpaper")
-            enabled: Config.background.mediaWallpaper.enabled
-            checked: Config.background.mediaWallpaper.showLyrics
-            onToggled: GlobalConfig.background.mediaWallpaper.showLyrics = checked
         }
 
         ToggleRow {

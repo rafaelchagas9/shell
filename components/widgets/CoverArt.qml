@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Effects
+import Quickshell
 import M3Shapes
 import Caelestia.Config
 import qs.components
@@ -13,13 +14,74 @@ import qs.services
 Item {
     id: root
 
-    readonly property alias shape: shape
+    readonly property alias shape: maskShape
+    readonly property real dpr: (QsWindow.window as QsWindow)?.devicePixelRatio ?? 1
+    readonly property size layerTextureSize: Qt.size(Math.max(1, Math.ceil(width * dpr)), Math.max(1, Math.ceil(height * dpr)))
 
     property bool hadPrevious
+    property string source: Players.getArtUrl(Players.active)
+    property bool spin: true
     property color fallbackColour: Colours.layer(Colours.palette.m3surfaceContainerHighest, 2)
+    property string imageSource
+    property bool imageReady
+
+    function syncImageReady(): void {
+        const canCreate = width > 0 && height > 0 && layerTextureSize.width > 1 && layerTextureSize.height > 1;
+
+        if (!canCreate) {
+            readyGateTimer.stop();
+            imageReady = false;
+            return;
+        }
+
+        readyGateTimer.restart();
+    }
+
+    function applyImageReady(): void {
+        const stillCanCreate = width > 0 && height > 0 && layerTextureSize.width > 1 && layerTextureSize.height > 1;
+        if (imageReady === stillCanCreate)
+            return;
+
+        imageReady = stillCanCreate;
+        if (imageReady)
+            reloadImageSource();
+    }
+
+    function reloadImageSource(): void {
+        imageSource = "";
+        if (source.length > 0 && imageReady)
+            imageSourceTimer.restart();
+    }
+
+    onSourceChanged: reloadImageSource()
+    onWidthChanged: {
+        syncImageReady();
+    }
+    onHeightChanged: {
+        syncImageReady();
+    }
+    Component.onCompleted: syncImageReady()
+
+    Timer {
+        id: readyGateTimer
+
+        interval: 0
+        onTriggered: root.applyImageReady()
+    }
+
+    Timer {
+        id: imageSourceTimer
+
+        interval: 0
+        onTriggered: {
+            if (root.imageSource.length === 0)
+                root.imageSource = root.source;
+        }
+    }
 
     // Slight glow to separate from bg
     layer.enabled: true
+    layer.textureSize: layerTextureSize
     layer.effect: MultiEffect {
         shadowEnabled: true
         blurMax: 1
@@ -31,23 +93,36 @@ Item {
         CAnim {}
     }
 
+    MaterialShape {
+        id: fallbackShape
+
+        anchors.fill: parent
+        shape: maskShape.shape
+        color: Qt.alpha(root.fallbackColour, 1)
+        opacity: root.fallbackColour.a
+        rotation: maskShape.rotation
+    }
+
     Item {
         id: shapeWrapper
 
         anchors.fill: parent
-        layer.enabled: true
-        opacity: root.fallbackColour.a
+        layer.enabled: root.imageReady
+        layer.textureSize: root.layerTextureSize
+        visible: false
 
         MaterialShape {
-            id: shape
+            id: maskShape
 
-            implicitSize: root.width
+            width: parent.width
+            height: parent.height
+            implicitSize: Math.min(width, height)
             shape: MaterialShape.Cookie12Sided
-            color: Qt.alpha(root.fallbackColour, 1)
+            color: "white"
 
             Anim on rotation {
                 running: true
-                paused: !Players.active?.isPlaying
+                paused: !root.spin || !Players.active?.isPlaying
                 from: 360
                 to: 0
                 duration: 23500
@@ -97,11 +172,15 @@ Item {
 
         anchors.fill: parent
 
-        source: Players.getArtUrl(Players.active)
+        source: root.imageReady ? root.imageSource : ""
 
-        layer.enabled: true
-        layer.effect: Mask {
+        layer.enabled: root.imageReady
+        layer.textureSize: root.layerTextureSize
+        layer.effect: MultiEffect {
+            maskEnabled: true
             maskSource: shapeWrapper
+            maskThresholdMin: 0.5
+            maskSpreadAtMin: 1
         }
     }
 }

@@ -32,6 +32,7 @@ Image {
 
     onStatusChanged: maybeStartInAnim()
     onPreventInitChanged: maybeStartInAnim()
+    Component.onCompleted: Qt.callLater(maybeStartInAnim)
 
     Anim on opacity {
         id: opacityInAnim
