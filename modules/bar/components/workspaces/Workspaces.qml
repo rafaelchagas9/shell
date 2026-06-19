@@ -97,10 +97,12 @@ StyledClippingRect {
             anchors.fill: layout
             onClicked: event => {
                 const ws = (layout.childAt(event.x, event.y) as Workspace)?.ws;
+                if (!ws)
+                    return;
                 if (Hypr.activeWsId !== ws)
-                    Hyprland.dispatch(Hyprland.usingLua ? `hl.dsp.focus({ workspace= "${ws}"})` : `workspace ${ws}`);
+                    Hypr.dispatch(Hypr.usingLua ? `hl.dsp.focus({ workspace = "${ws}" })` : `workspace ${ws}`);
                 else
-                    Hyprland.dispatch(Hyprland.usingLua ? `hl.dsp.workspace.toggle_special({ "special" })` : `togglespecialworkspace special`);
+                    Hypr.dispatch(Hypr.usingLua ? 'hl.dsp.workspace.toggle_special("special")' : "togglespecialworkspace special");
             }
         }
 
