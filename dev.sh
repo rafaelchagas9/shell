@@ -29,6 +29,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$REPO_DIR/build"
 SYSTEM_QML_DIR="/usr/lib/qt6/qml/Caelestia"
+SYSTEM_CONFIG_DIR="/etc/xdg/quickshell/caelestia"
 QT_BIN="${QT_BIN:-/usr/lib/qt6/bin}"
 
 # Prefer `qs`, fall back to `quickshell`.
@@ -120,7 +121,9 @@ install() {
     # Without this, CMake may report 'Up-to-date' and leave a mismatched plugin
     # set on the system. Touching guarantees every file is copied.
     find "$BUILD_DIR" -type f -exec touch {} +
-    log "Installing to system (sudo)… this overwrites $SYSTEM_QML_DIR"
+    log "Removing previous install trees so obsolete QML files cannot survive…"
+    sudo rm -rf -- "$SYSTEM_QML_DIR" "$SYSTEM_CONFIG_DIR"
+    log "Installing to system (sudo)…"
     sudo cmake --install "$BUILD_DIR"
     log "Installed. Restart with: caelestia shell -d"
 }

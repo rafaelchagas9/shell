@@ -3,6 +3,7 @@
 #include <QtDBus/qdbusconnection.h>
 #include <QtDBus/qdbusconnectioninterface.h>
 #include <QtDBus/qdbusmessage.h>
+#include <QtDBus/qdbusmetatype.h>
 #include <QtDBus/qdbuspendingcall.h>
 #include <QtDBus/qdbuspendingreply.h>
 #include <QtDBus/qdbusreply.h>
@@ -23,6 +24,8 @@ KdeConnect::KdeConnect(QObject* parent)
     : QObject(parent)
     , m_serviceWatcher(new QDBusServiceWatcher(QString::fromLatin1(KDE_CONNECT_SERVICE), QDBusConnection::sessionBus(),
           QDBusServiceWatcher::WatchForRegistration | QDBusServiceWatcher::WatchForUnregistration, this)) {
+    qDBusRegisterMetaType<QMap<QString, QString>>();
+
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceRegistered, this, &KdeConnect::handleServiceRegistered);
     connect(m_serviceWatcher, &QDBusServiceWatcher::serviceUnregistered, this, &KdeConnect::handleServiceUnregistered);
 
