@@ -110,6 +110,11 @@ Item {
         }
 
         Popout {
+            name: "kdeconnect"
+            sourceComponent: KdeConnectDevices {}
+        }
+
+        Popout {
             name: "audio"
             sourceComponent: Audio {
                 popouts: root.popouts

@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Bluetooth
 import Quickshell.Services.UPower
 import Caelestia.Config
+import Caelestia.Services
 import qs.components
 import qs.services
 import qs.utils
@@ -231,6 +232,42 @@ StyledRect {
 
             Behavior on Layout.preferredHeight {
                 Anim {}
+            }
+        }
+
+        // KDE Connect devices
+        WrappedLoader {
+            name: "kdeconnect"
+            active: Config.bar.status.showKdeConnect
+
+            sourceComponent: ColumnLayout {
+                spacing: Tokens.spacing.medium / 2
+
+                Repeater {
+                    model: KdeConnect.devices
+
+                    Item {
+                        id: kdeConnectDevice
+
+                        required property KdeConnectDevice modelData
+
+                        Layout.alignment: Qt.AlignHCenter
+                        implicitWidth: deviceIcon.implicitWidth
+                        implicitHeight: visible ? deviceIcon.implicitHeight : 0
+                        visible: modelData.reachable && modelData.batteryAvailable
+
+                        MaterialIcon {
+                            id: deviceIcon
+
+                            anchors.centerIn: parent
+
+                            animate: true
+                            text: Icons.getKdeConnectDeviceIcon(kdeConnectDevice.modelData.type)
+                            color: kdeConnectDevice.modelData.batteryPercentage <= 20 && !kdeConnectDevice.modelData.charging ? Colours.palette.m3error : root.colour
+                            fill: 1
+                        }
+                    }
+                }
             }
         }
 

@@ -60,6 +60,12 @@ PageBase {
         }
 
         ToggleRow {
+            text: qsTr("KDE Connect")
+            checked: Config.bar.status.showKdeConnect
+            onToggled: GlobalConfig.bar.status.showKdeConnect = checked
+        }
+
+        ToggleRow {
             text: qsTr("Battery")
             checked: Config.bar.status.showBattery
             onToggled: GlobalConfig.bar.status.showBattery = checked

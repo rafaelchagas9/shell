@@ -102,6 +102,7 @@ class BarStatus : public ConfigObject {
     CONFIG_PROPERTY(bool, showNetwork, true)
     CONFIG_PROPERTY(bool, showWifi, true)
     CONFIG_PROPERTY(bool, showBluetooth, true)
+    CONFIG_PROPERTY(bool, showKdeConnect, true)
     CONFIG_PROPERTY(bool, showBattery, true)
     CONFIG_PROPERTY(bool, showLockStatus, true)
 

@@ -15,6 +15,8 @@ qml_module(caelestia-services
         memory.cpp
         diskinfo.cpp
         storage.cpp
+        kdeconnectdevice.cpp
+        kdeconnect.cpp
         lyriccandidate.cpp
         lyrics.cpp
         sessionmanager.cpp

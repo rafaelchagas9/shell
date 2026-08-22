@@ -158,6 +158,23 @@ Singleton {
         return "bluetooth";
     }
 
+    function getKdeConnectDeviceIcon(type: string): string {
+        switch (type.toLowerCase()) {
+        case "phone":
+            return "smartphone";
+        case "tablet":
+            return "tablet";
+        case "laptop":
+            return "laptop";
+        case "desktop":
+            return "desktop_windows";
+        case "tv":
+            return "tv";
+        default:
+            return "devices";
+        }
+    }
+
     function getWeatherIcon(code: string): string {
         if (weatherIcons.hasOwnProperty(code))
             return weatherIcons[code];

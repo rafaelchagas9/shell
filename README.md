@@ -152,6 +152,10 @@ Dependencies:
 -   `qt6-base`
 -   `qt6-declarative`
 
+Optional integrations:
+
+-   [`kdeconnect`](https://kdeconnect.kde.org) - paired-device status and battery information
+
 Build dependencies:
 
 -   [`cmake`](https://cmake.org)
@@ -543,6 +547,7 @@ For example, to disable the bar on DP-1:
             "showNetwork": true,
             "showWifi": true,
             "showBluetooth": true,
+            "showKdeConnect": true,
             "showBattery": true,
             "showLockStatus": true
         },
