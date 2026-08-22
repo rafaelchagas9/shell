@@ -37,7 +37,20 @@ QS_BIN="$(command -v qs || command -v quickshell || true)"
 log() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 
+ensure_writable_build_dir() {
+    [ -d "$BUILD_DIR" ] || return 0
+
+    local blocked
+    blocked="$(find "$BUILD_DIR" -path '*/.git/*' -prune -o -mindepth 1 ! -writable -print -quit)"
+    if [ -n "$blocked" ]; then
+        log "Build dir contains non-writable generated artifacts; removing it…"
+        printf '  first blocked path: %s\n' "$blocked"
+        rm -rf "$BUILD_DIR"
+    fi
+}
+
 configure() {
+    ensure_writable_build_dir
     # Reconfigure every time: it is cheap and, crucially, picks up a system Qt
     # update so we never build against stale Qt headers.
     log "Configuring (cmake)…"
