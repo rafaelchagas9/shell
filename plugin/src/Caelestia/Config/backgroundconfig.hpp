@@ -73,6 +73,8 @@ class MediaWallpaperConfig : public ConfigObject {
     CONFIG_PROPERTY(bool, enabled, false)
     CONFIG_PROPERTY(bool, showLyrics, true)
     CONFIG_PROPERTY(bool, showDetails, true)
+    CONFIG_PROPERTY(bool, showControls, true)
+    CONFIG_PROPERTY(bool, controlsOnHover, false)
     CONFIG_PROPERTY(bool, showVisualiser, true)
     CONFIG_PROPERTY(bool, spinCover, true)
     CONFIG_PROPERTY(qreal, coverSize, 0.42)

@@ -56,6 +56,24 @@ PageBase {
 
         ToggleRow {
             Layout.fillWidth: true
+            text: qsTr("Playback controls")
+            subtext: qsTr("Show shuffle, skip, play/pause and repeat buttons")
+            enabled: root.cfg.enabled
+            checked: root.cfg.showControls
+            onToggled: root.gCfg.showControls = checked
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
+            text: qsTr("Controls on hover")
+            subtext: qsTr("Reveal the playback controls only while hovering")
+            enabled: root.cfg.enabled && root.cfg.showControls
+            checked: root.cfg.controlsOnHover
+            onToggled: root.gCfg.controlsOnHover = checked
+        }
+
+        ToggleRow {
+            Layout.fillWidth: true
             text: qsTr("Spin cover")
             subtext: qsTr("Slowly rotate the cover shape while playing")
             enabled: root.cfg.enabled
