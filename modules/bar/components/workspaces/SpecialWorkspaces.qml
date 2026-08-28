@@ -350,7 +350,8 @@ Item {
                 Repeater {
                     model: ScriptModel {
                         values: {
-                            const windows = Hypr.toplevelsForWs(ws.wsId);
+                            // See Workspace.qml: ScriptModel.values needs a JS array.
+                            const windows = [...Hypr.toplevelsForWs(ws.wsId)];
                             const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
                             return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
                         }

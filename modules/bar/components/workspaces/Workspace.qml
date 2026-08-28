@@ -154,7 +154,10 @@ ColumnLayout {
             Repeater {
                 model: ScriptModel {
                     values: {
-                        const windows = Hypr.toplevelsForWs(root.ws);
+                        // Spread into a real JS array: toplevelsForWs is typed
+                        // `list<HyprlandToplevel>`, and assigning that QList<QObject*>
+                        // straight to ScriptModel.values (QList<QJSValue>) throws.
+                        const windows = [...Hypr.toplevelsForWs(root.ws)];
                         const maxIcons = root.Config.bar.workspaces.maxWindowIcons;
                         return maxIcons > 0 ? windows.slice(0, maxIcons) : windows;
                     }
