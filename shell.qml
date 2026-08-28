@@ -34,7 +34,6 @@ ShellRoot {
         id: lock
     }
 
-    ConfigToasts {}
     LyricsDriver {}
     Shortcuts {}
     BatteryMonitor {}
