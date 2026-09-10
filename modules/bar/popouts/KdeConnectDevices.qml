@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import Caelestia.Services
 import qs.components
 import qs.services
@@ -17,7 +18,7 @@ ColumnLayout {
     StyledText {
         Layout.topMargin: Tokens.padding.medium
         Layout.rightMargin: Tokens.padding.extraSmall
-        text: qsTr("KDE Connect")
+        text: Tr.tr("KDE Connect")
         font: Tokens.font.body.builders.medium.weight(Font.Medium).build()
     }
 
@@ -26,8 +27,8 @@ ColumnLayout {
         text: {
             const count = KdeConnect.devices.length;
             if (count === 0)
-                return KdeConnect.available ? qsTr("No paired devices") : qsTr("KDE Connect is unavailable");
-            return count === 1 ? qsTr("%1 paired device").arg(count) : qsTr("%1 paired devices").arg(count);
+                return KdeConnect.available ? Tr.tr("No paired devices") : Tr.tr("KDE Connect is unavailable");
+            return count === 1 ? Tr.tr("%1 paired device").arg(count) : Tr.tr("%1 paired devices").arg(count);
         }
         color: Colours.palette.m3onSurfaceVariant
         font: Tokens.font.body.small
@@ -68,7 +69,7 @@ ColumnLayout {
 
                     StyledText {
                         Layout.fillWidth: true
-                        text: device.modelData.name || qsTr("Unknown device")
+                        text: device.modelData.name || Tr.tr("Unknown device")
                         elide: Text.ElideRight
                     }
 
@@ -76,10 +77,10 @@ ColumnLayout {
                         Layout.fillWidth: true
                         text: {
                             if (!device.modelData.reachable)
-                                return qsTr("Disconnected");
+                                return Tr.tr("Disconnected");
                             if (!device.modelData.batteryAvailable)
-                                return qsTr("Battery unavailable");
-                            return device.modelData.charging ? qsTr("Charging") : qsTr("Connected");
+                                return Tr.tr("Battery unavailable");
+                            return device.modelData.charging ? Tr.tr("Charging") : Tr.tr("Connected");
                         }
                         color: Colours.palette.m3onSurfaceVariant
                         font: Tokens.font.body.small
@@ -95,7 +96,7 @@ ColumnLayout {
 
                 StyledText {
                     visible: device.modelData.reachable && device.modelData.batteryAvailable
-                    text: qsTr("%1%").arg(device.modelData.batteryPercentage)
+                    text: Tr.tr("%1%").arg(device.modelData.batteryPercentage)
                     color: device.modelData.batteryPercentage <= 20 && !device.modelData.charging ? Colours.palette.m3error : Colours.palette.m3onSurface
                     font: Tokens.font.mono.medium
                 }

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "kdeconnectdevice.hpp"
-
 #include <qhash.h>
 #include <qmap.h>
 #include <qobject.h>
 #include <qqmlintegration.h>
 #include <qqmllist.h>
+
+#include "kdeconnectdevice.hpp"
 
 class QDBusServiceWatcher;
 

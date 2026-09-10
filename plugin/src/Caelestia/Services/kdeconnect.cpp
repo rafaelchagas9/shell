@@ -8,6 +8,7 @@
 #include <QtDBus/qdbuspendingreply.h>
 #include <QtDBus/qdbusreply.h>
 #include <QtDBus/qdbusservicewatcher.h>
+
 #include <utility>
 
 namespace caelestia::services {

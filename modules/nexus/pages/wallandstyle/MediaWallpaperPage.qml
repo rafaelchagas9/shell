@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import qs.components
 import qs.modules.nexus.common
 
@@ -12,7 +13,7 @@ PageBase {
     readonly property var cfg: Config.background.mediaWallpaper
     readonly property var gCfg: GlobalConfig.background.mediaWallpaper
 
-    title: qsTr("Media wallpaper")
+    title: Tr.tr("Media wallpaper")
     isSubPage: true
 
     ColumnLayout {
@@ -24,22 +25,22 @@ PageBase {
         // General
         SectionHeader {
             first: true
-            text: qsTr("General")
+            text: Tr.tr("General")
         }
 
         ToggleRow {
             Layout.fillWidth: true
             first: true
-            text: qsTr("Enabled")
-            subtext: qsTr("Show album art as wallpaper while media plays")
+            text: Tr.tr("Enabled")
+            subtext: Tr.tr("Show album art as wallpaper while media plays")
             checked: root.cfg.enabled
             onToggled: root.gCfg.enabled = checked
         }
 
         ToggleRow {
             Layout.fillWidth: true
-            text: qsTr("Lyrics")
-            subtext: qsTr("Overlay synced lyrics on the media wallpaper")
+            text: Tr.tr("Lyrics")
+            subtext: Tr.tr("Overlay synced lyrics on the media wallpaper")
             enabled: root.cfg.enabled
             checked: root.cfg.showLyrics
             onToggled: root.gCfg.showLyrics = checked
@@ -47,8 +48,8 @@ PageBase {
 
         ToggleRow {
             Layout.fillWidth: true
-            text: qsTr("Track details")
-            subtext: qsTr("Show title, artist and playback progress under the cover")
+            text: Tr.tr("Track details")
+            subtext: Tr.tr("Show title, artist and playback progress under the cover")
             enabled: root.cfg.enabled
             checked: root.cfg.showDetails
             onToggled: root.gCfg.showDetails = checked
@@ -56,8 +57,8 @@ PageBase {
 
         ToggleRow {
             Layout.fillWidth: true
-            text: qsTr("Playback controls")
-            subtext: qsTr("Show shuffle, skip, play/pause and repeat buttons")
+            text: Tr.tr("Playback controls")
+            subtext: Tr.tr("Show shuffle, skip, play/pause and repeat buttons")
             enabled: root.cfg.enabled
             checked: root.cfg.showControls
             onToggled: root.gCfg.showControls = checked
@@ -65,8 +66,8 @@ PageBase {
 
         ToggleRow {
             Layout.fillWidth: true
-            text: qsTr("Controls on hover")
-            subtext: qsTr("Reveal the playback controls only while hovering")
+            text: Tr.tr("Controls on hover")
+            subtext: Tr.tr("Reveal the playback controls only while hovering")
             enabled: root.cfg.enabled && root.cfg.showControls
             checked: root.cfg.controlsOnHover
             onToggled: root.gCfg.controlsOnHover = checked
@@ -74,8 +75,8 @@ PageBase {
 
         ToggleRow {
             Layout.fillWidth: true
-            text: qsTr("Spin cover")
-            subtext: qsTr("Slowly rotate the cover shape while playing")
+            text: Tr.tr("Spin cover")
+            subtext: Tr.tr("Slowly rotate the cover shape while playing")
             enabled: root.cfg.enabled
             checked: root.cfg.spinCover
             onToggled: root.gCfg.spinCover = checked
@@ -84,8 +85,8 @@ PageBase {
         ToggleRow {
             Layout.fillWidth: true
             last: true
-            text: qsTr("Visualiser ring")
-            subtext: qsTr("Audio visualiser around the cover")
+            text: Tr.tr("Visualiser ring")
+            subtext: Tr.tr("Audio visualiser around the cover")
             enabled: root.cfg.enabled
             checked: root.cfg.showVisualiser
             onToggled: root.gCfg.showVisualiser = checked
@@ -93,15 +94,15 @@ PageBase {
 
         // Appearance
         SectionHeader {
-            text: qsTr("Appearance")
+            text: Tr.tr("Appearance")
         }
 
         SliderRow {
             Layout.fillWidth: true
             first: true
             icon: "fit_screen"
-            label: qsTr("Cover size")
-            valueLabel: qsTr("%1%").arg(Math.round(root.cfg.coverSize * 100))
+            label: Tr.tr("Cover size")
+            valueLabel: Tr.tr("%1%").arg(Math.round(root.cfg.coverSize * 100))
             enabled: root.cfg.enabled
             value: root.cfg.coverSize
             onMoved: value => root.gCfg.coverSize = value
@@ -111,8 +112,8 @@ PageBase {
             Layout.fillWidth: true
             last: true
             icon: "opacity"
-            label: qsTr("Backdrop dimming")
-            valueLabel: qsTr("%1%").arg(Math.round(root.cfg.scrimOpacity * 100))
+            label: Tr.tr("Backdrop dimming")
+            valueLabel: Tr.tr("%1%").arg(Math.round(root.cfg.scrimOpacity * 100))
             enabled: root.cfg.enabled
             value: root.cfg.scrimOpacity
             onMoved: value => root.gCfg.scrimOpacity = value
@@ -120,14 +121,14 @@ PageBase {
 
         // Behaviour
         SectionHeader {
-            text: qsTr("Behaviour")
+            text: Tr.tr("Behaviour")
         }
 
         StepperRow {
             Layout.fillWidth: true
             first: true
-            label: qsTr("Track change debounce (ms)")
-            subtext: qsTr("Wait before switching art on rapid track changes")
+            label: Tr.tr("Track change debounce (ms)")
+            subtext: Tr.tr("Wait before switching art on rapid track changes")
             from: 0
             to: 2000
             stepSize: 50
@@ -138,8 +139,8 @@ PageBase {
         StepperRow {
             Layout.fillWidth: true
             last: true
-            label: qsTr("Restore wallpaper after pause (s)")
-            subtext: qsTr("Return to the static wallpaper when paused this long")
+            label: Tr.tr("Restore wallpaper after pause (s)")
+            subtext: Tr.tr("Return to the static wallpaper when paused this long")
             from: 0
             to: 600
             stepSize: 5

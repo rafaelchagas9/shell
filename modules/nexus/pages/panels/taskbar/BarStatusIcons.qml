@@ -2,23 +2,24 @@ pragma ComponentBehavior: Bound
 
 import QtQuick.Layouts
 import Caelestia.Config
+import Caelestia.I18n
 import qs.modules.nexus.common
 
 PageBase {
     id: root
 
     readonly property var builtinIcons: ({
-            lockStatus: qsTr("Lock keys"),
-            kbLayout: qsTr("Keyboard layout"),
-            audio: qsTr("Speakers"),
-            microphone: qsTr("Microphone"),
-            network: qsTr("Network"),
-            bluetooth: qsTr("Bluetooth"),
-            kdeconnect: qsTr("KDE Connect"),
-            battery: qsTr("Battery")
+            lockStatus: Tr.tr("Lock keys"),
+            kbLayout: Tr.tr("Keyboard layout"),
+            audio: Tr.tr("Speakers"),
+            microphone: Tr.tr("Microphone"),
+            network: Tr.tr("Network"),
+            bluetooth: Tr.tr("Bluetooth"),
+            kdeconnect: Tr.tr("KDE Connect"),
+            battery: Tr.tr("Battery")
         })
 
-    title: qsTr("Status icons")
+    title: Tr.tr("Status icons")
     isSubPage: true
 
     ColumnLayout {
@@ -30,7 +31,7 @@ PageBase {
         // Visible icons
         SectionHeader {
             first: true
-            text: qsTr("Visible icons")
+            text: Tr.tr("Visible icons")
         }
 
         ListEditor {
@@ -59,9 +60,9 @@ PageBase {
 
             rootParent: root.flickable
             icon: "add"
-            label: qsTr("Add entry")
-            header: qsTr("Add new entry")
-            acceptLabel: qsTr("Add")
+            label: Tr.tr("Add entry")
+            header: Tr.tr("Add new entry")
+            acceptLabel: Tr.trCtx("Add", "button")
 
             model: {
                 const builtins = Object.keys(root.builtinIcons).map(k => ({
@@ -84,14 +85,14 @@ PageBase {
 
         // Behaviour
         SectionHeader {
-            text: qsTr("Behaviour")
+            text: Tr.tr("Behaviour")
         }
 
         ToggleRow {
             first: true
             last: true
-            text: qsTr("Popout on hover")
-            subtext: qsTr("Show a details popout when hovering the status icons")
+            text: Tr.tr("Popout on hover")
+            subtext: Tr.tr("Show a details popout when hovering the status icons")
             checked: Config.bar.popouts.statusIcons
             onToggled: GlobalConfig.bar.popouts.statusIcons = checked
         }
