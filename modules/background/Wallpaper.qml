@@ -8,9 +8,9 @@ import Caelestia.I18n
 import qs.components
 import qs.components.filedialog
 import qs.components.images
-import qs.modules.background.media
 import qs.services
 import qs.utils
+import qs.modules.background.media
 
 Item {
     id: root

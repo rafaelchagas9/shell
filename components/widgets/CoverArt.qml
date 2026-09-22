@@ -53,6 +53,16 @@ Item {
             imageSourceTimer.restart();
     }
 
+    // Slight glow to separate from bg
+    layer.enabled: true
+    layer.textureSize: layerTextureSize
+    layer.effect: MultiEffect {
+        shadowEnabled: true
+        blurMax: 1
+        shadowColor: Colours.palette.m3outline
+        shadowOpacity: 0.3
+    }
+
     onSourceChanged: reloadImageSource()
     onWidthChanged: {
         syncImageReady();
@@ -77,16 +87,6 @@ Item {
             if (root.imageSource.length === 0)
                 root.imageSource = root.source;
         }
-    }
-
-    // Slight glow to separate from bg
-    layer.enabled: true
-    layer.textureSize: layerTextureSize
-    layer.effect: MultiEffect {
-        shadowEnabled: true
-        blurMax: 1
-        shadowColor: Colours.palette.m3outline
-        shadowOpacity: 0.3
     }
 
     Behavior on fallbackColour {
